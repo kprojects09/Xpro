@@ -16,6 +16,50 @@ dotenv.config();
 
 const isProd = process.env.NODE_ENV === 'production';
 
+
+const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
+async function fetchWithRetry<T>(
+  operation: () => Promise<T>,
+  maxRetries: number = 3
+): Promise<T> {
+  let attempt = 0;
+  while (attempt < maxRetries) {
+    try {
+      return await operation();
+    } catch (error: any) {
+      const isRateLimited = error?.status === 429 || error?.message?.includes('429') || error?.message?.includes('RESOURCE_EXHAUSTED') || error?.message?.includes('quota');
+      if (isRateLimited) {
+        attempt++;
+        if (attempt >= maxRetries) {
+          throw new Error("AI service is temporarily unavailable. Please try again later.");
+        }
+        const waitTime = Math.pow(2, attempt) * 1000 + Math.random() * 1000;
+        console.log(`429 Too Many Requests, retrying in ${waitTime}ms...`);
+        await delay(waitTime);
+      } else {
+        throw error;
+      }
+    }
+  }
+  throw new Error("AI service is temporarily unavailable. Please try again later.");
+}
+
+const aiResponseCache = new Map<string, { response: string, timestamp: number }>();
+const CACHE_TTL = 1000 * 60 * 5; // 5 minutes
+
+function getCachedResponse(key: string) {
+  const cached = aiResponseCache.get(key);
+  if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
+    return cached.response;
+  }
+  return null;
+}
+
+function setCachedResponse(key: string, response: string) {
+  aiResponseCache.set(key, { response, timestamp: Date.now() });
+}
+
 async function createServer() {
   const app = express();
   const port = 3000;
@@ -176,7 +220,7 @@ async function createServer() {
 
   function getGenAI() {
     if (!genAI) {
-      const apiKey = process.env.GEMINI_API_KEY;
+      const apiKey = customApiKey || process.env.GEMINI_API_KEY;
       if (!apiKey) {
         throw new Error('GEMINI_API_KEY environment variable is required');
       }
@@ -298,18 +342,29 @@ async function createServer() {
          return;
       }
 
-      const ai = getGenAI();
-      const response = await ai.models.generateContent({
-        model: "gemini-2.0-flash",
-        contents: message,
-      });
+      const cacheKey = typeof message === 'string' ? message : JSON.stringify(message);
+      const cached = getCachedResponse(cacheKey);
+      if (cached) {
+        res.json({ reply: cached });
+        return;
+      }
 
+      const ai = getGenAI();
+      const response = await fetchWithRetry(() => ai.models.generateContent({
+        model: "gemini-3.5-flash",
+        contents: message,
+      }));
+
+      if (response.text) {
+        setCachedResponse(cacheKey, response.text);
+      }
       res.json({ reply: response.text });
     } catch (error: any) {
       console.error('Chat error:', error);
+      const msg = error?.message === "AI service is temporarily unavailable. Please try again later." ? error.message : "AI service error: " + (error?.message || "Unknown error");
       res.status(500).json({ 
-        error: error.message, 
-        details: error.message 
+        error: msg, 
+        details: error?.message || 'Unknown error'
       });
     }
   });
@@ -317,12 +372,15 @@ async function createServer() {
   // Contextual Chat API route for Low Latency and automatic language/rule processing
   app.post('/api/chat', async (req: Request, res: Response) => {
     try {
-      const { contents, systemInstruction } = req.body;
+      const { contents, systemInstruction, customApiKey } = req.body;
 
       if (!contents || !Array.isArray(contents)) {
          res.status(400).json({ error: 'Contents history is required' });
          return;
       }
+
+      const cacheKey = JSON.stringify({ contents, systemInstruction });
+      const cached = getCachedResponse(cacheKey);
 
       const ai = getGenAI();
       
@@ -331,42 +389,62 @@ async function createServer() {
         res.setHeader('Cache-Control', 'no-cache');
         res.setHeader('Connection', 'keep-alive');
 
-        const streamResponse = await ai.models.generateContentStream({
-          model: "gemini-2.0-flash",
+        if (cached) {
+          res.write(`data: ${JSON.stringify({ text: cached })}\n\n`);
+          res.write('data: [DONE]\n\n');
+          res.end();
+          return;
+        }
+
+        const streamResponse = await fetchWithRetry(() => ai.models.generateContentStream({
+          model: "gemini-3.5-flash",
           contents,
           config: {
             systemInstruction: systemInstruction || undefined,
             temperature: 0.4
           }
-        });
+        }));
 
+        let fullText = "";
         for await (const chunk of streamResponse) {
           if (chunk.text) {
+            fullText += chunk.text;
             res.write(`data: ${JSON.stringify({ text: chunk.text })}\n\n`);
           }
+        }
+        if (fullText) {
+          setCachedResponse(cacheKey, fullText);
         }
         res.write('data: [DONE]\n\n');
         res.end();
       } else {
-        const response = await ai.models.generateContent({
-          model: "gemini-2.0-flash",
+        if (cached) {
+          res.json({ reply: cached });
+          return;
+        }
+        const response = await fetchWithRetry(() => ai.models.generateContent({
+          model: "gemini-3.5-flash",
           contents,
           config: {
             systemInstruction: systemInstruction || undefined,
             temperature: 0.4
           }
-        });
+        }));
 
+        if (response.text) {
+          setCachedResponse(cacheKey, response.text);
+        }
         res.json({ reply: response.text });
       }
     } catch (error: any) {
       console.error('API Chat error:', error);
+      const msg = error?.message === "AI service is temporarily unavailable. Please try again later." ? error.message : "AI service error: " + (error?.message || "Unknown error");
       if (req.headers.accept?.includes('text/event-stream')) {
-        res.write(`data: ${JSON.stringify({ error: error.message })}\n\n`);
+        res.write(`data: ${JSON.stringify({ error: msg })}\n\n`);
         res.end();
       } else {
         res.status(500).json({ 
-          error: error.message, 
+          error: msg, 
           details: error?.message || 'Unknown error' 
         });
       }

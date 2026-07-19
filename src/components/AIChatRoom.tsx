@@ -402,7 +402,9 @@ export function AIChatRoom({
     // AI responder loop
     setTimeout(async () => {
       let aiResponse = '';
-      const apiKey = appSettings.customGeminiApiKey || localStorage.getItem('custom_gemini_api_key');
+      const apiKey = appSettings.customGeminiApiKey?.trim();
+      const maskedKey = apiKey ? `${apiKey.substring(0, 4)}...${apiKey.substring(apiKey.length - 4)}` : 'None';
+      console.log(`[DEBUG] Fetched Gemini API Key from Admin Panel: ${maskedKey}`);
       const preferredLanguage = userProfile?.language || 'English';
 
       // Define standard instructions for professional AI Study Co-Pilot with automatic language rules
@@ -463,7 +465,7 @@ NEVER flirt. NEVER use romantic language. Focus only on education, productivity,
         try {
           const ai = new GoogleGenAI({ apiKey });
           const responseStream = await ai.models.generateContentStream({
-            model: 'gemini-2.0-flash',
+            model: 'gemini-3.5-flash',
             contents,
             config: {
               systemInstruction
@@ -477,7 +479,12 @@ NEVER flirt. NEVER use romantic language. Focus only on education, productivity,
           }
         } catch (error: any) {
           console.error("Gemini API Error in Chat Screen:", error);
-          updateAssistantMessage(`Gemini API-te somossa holo: ${error?.message || 'Unauthorized API Key'}. Default server engine co-pilot diye try koro!`);
+          const isRateLimited = error?.status === 429 || error?.message?.includes('429') || error?.message?.includes('RESOURCE_EXHAUSTED') || error?.message?.includes('quota');
+          if (isRateLimited) {
+            updateAssistantMessage("AI service is temporarily unavailable. Please try again later.");
+          } else {
+            updateAssistantMessage(`Gemini API Error: ${error?.message || 'Unauthorized API Key'}`);
+          }
         }
       } else {
         // Call our secure, server-side API proxy route!
@@ -488,7 +495,7 @@ NEVER flirt. NEVER use romantic language. Focus only on education, productivity,
               'Content-Type': 'application/json',
               'Accept': 'text/event-stream'
             },
-            body: JSON.stringify({ contents, systemInstruction })
+            body: JSON.stringify({ contents, systemInstruction, customApiKey: appSettings?.customGeminiApiKey })
           });
 
           if (!response.ok) {
@@ -508,7 +515,7 @@ NEVER flirt. NEVER use romantic language. Focus only on education, productivity,
               updateAssistantMessage(data.reply);
               receivedValidData = true;
             } else if (data.error) {
-              updateAssistantMessage(`Server error: ${data.error}`);
+              updateAssistantMessage(data.error === "AI service is temporarily unavailable. Please try again later." ? data.error : `Server error: ${data.error}`);
               receivedValidData = true;
             }
           } else if (response.body) {
@@ -537,7 +544,7 @@ NEVER flirt. NEVER use romantic language. Focus only on education, productivity,
                         if (parsed.text) {
                           updateAssistantMessage(parsed.text);
                         } else if (parsed.error) {
-                          updateAssistantMessage(`Server error: ${parsed.error}`);
+                          updateAssistantMessage(parsed.error === "AI service is temporarily unavailable. Please try again later." ? parsed.error : `Server error: ${parsed.error}`);
                         }
                       } catch (e) {
                         console.error("Error parsing SSE data", e, dataStr);
