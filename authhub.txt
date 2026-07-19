@@ -1,0 +1,303 @@
+240-};
+241-
+242:function AuthHub({ 
+243-  theme, 
+244-  onUnlock,
+245-  addSystemLog
+246-}: { 
+247-  theme: any; 
+248-  onUnlock: (isDev: boolean, user?: any) => void;
+249-  addSystemLog: (log: string) => void;
+250-}) {
+251-  const [screen, setScreen] = useState<'welcome' | 'admin_login'>('welcome');
+252-  const [passcode, setPasscode] = useState('');
+253-  const [loading, setLoading] = useState(false);
+254-  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+255-  const [successMsg, setSuccessMsg] = useState<string | null>(null);
+256-
+257-  const handleGoogleSignIn = async () => {
+258-    setLoading(true);
+259-    setErrorMsg(null);
+260-    setSuccessMsg(null);
+261-    try {
+262-      const provider = new GoogleAuthProvider();
+263-      const userCredential = await signInWithPopup(auth, provider);
+264-      
+265-      // Check if user is blocked in Firestore
+266-      const userSnap = await getDoc(doc(db, 'users', userCredential.user.uid));
+267-      if (userSnap.exists() && userSnap.data().blocked === true) {
+268-        await signOut(auth);
+269-        setErrorMsg("Access Denied: This account has been locked by the administrator.");
+270-        addSystemLog(`[AUTH_ERR] Blocked user ${userCredential.user.email} attempted login.`);
+271-        setLoading(false);
+272-        return;
+273-      }
+274-
+275-      setSuccessMsg("Welcome! Authenticated via Google.");
+276-      addSystemLog(`[AUTH] Google authentication successful for ${userCredential.user.email}`);
+277-      setTimeout(() => {
+278-        onUnlock(false, userCredential.user);
+279-      }, 1000);
+280-    } catch (err: any) {
+281-      console.error(err);
+282-      setErrorMsg(err.message || "Google Authentication failed.");
+283-      addSystemLog(`[AUTH_ERR] Google sign-in failed: ${err.message}`);
+284-    } finally {
+285-      setLoading(false);
+286-    }
+287-  };
+288-
+289-  const handleAdminBypass = (e: React.FormEvent) => {
+290-    e.preventDefault();
+291-    setErrorMsg(null);
+292-    setSuccessMsg(null);
+293-
+294-    const normalized = passcode.trim().toLowerCase();
+295-    if (normalized === 'rana@2000') {
+296-      setSuccessMsg('Passkey sequence matched. Launching Admin Console...');
+297-      addSystemLog(`[ADMIN] Bypass access authenticated via security passcode.`);
+298-      setTimeout(() => {
+299-        localStorage.setItem('sweety_dev_unlocked', 'true');
+300-        onUnlock(true);
+301-      }, 1000);
+302-    } else {
+303-      setErrorMsg('Access Denied: Invalid admin passcode sequence.');
+304-      addSystemLog(`[ADMIN_ERR] Access failed: invalid bypass code.`);
+305-    }
+306-  };
+307-
+308-  return (
+309-    <div className="fixed inset-0 bg-[#060413] overflow-y-auto font-sans text-white scroll-smooth">
+310-      <div className="min-h-[100dvh] flex flex-col items-center p-4 sm:p-8 pb-[max(1rem,env(safe-area-inset-bottom))] pt-[max(1rem,env(safe-area-inset-top))] select-none relative justify-start md:justify-center">
+311-      
+312-      {/* Absolute Ambient Background Lights */}
+313-      <div className="fixed top-1/4 left-1/4 w-[400px] h-[400px] bg-indigo-500/10 rounded-full blur-[120px] pointer-events-none" />
+314-      <div className="fixed bottom-1/4 right-1/4 w-[400px] h-[400px] bg-pink-500/10 rounded-full blur-[120px] pointer-events-none" />
+315-      <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-purple-500/5 rounded-full blur-[150px] pointer-events-none" />
+316-
+317-      {/* Main Glass Panel */}
+318-      <motion.div 
+319-        initial={{ opacity: 0, scale: 0.95, y: 15 }}
+320-        animate={{ opacity: 1, scale: 1, y: 0 }}
+321-        transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+322-        className="w-full max-w-md rounded-3xl p-8 md:p-10 bg-slate-900/45 backdrop-blur-2xl shadow-2xl relative z-10 border border-white/10 overflow-hidden mt-8 mb-8 md:my-auto shrink-0"
+323-      >
+324-        {/* Colorful Gradient Border Flare */}
+325-        <div className="absolute top-0 inset-x-0 h-[2px] bg-gradient-to-r from-pink-500 via-purple-500 to-indigo-500" />
+326-
+327-        {/* Brand Header */}
+328-        <div className="flex flex-col items-center text-center gap-2 mb-8">
+329-          <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-pink-500 via-purple-600 to-indigo-500 flex items-center justify-center text-white font-extrabold text-2xl shadow-xl shadow-purple-500/20 mb-2 relative animate-pulse">
+330-            <GraduationCap size={32} />
+331-            <div className="absolute -inset-1 rounded-2xl bg-gradient-to-tr from-pink-500 via-purple-600 to-indigo-500 opacity-30 blur-sm -z-10" />
+332-          </div>
+333-          <h1 className="text-3xl font-extrabold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-white via-indigo-100 to-pink-200">
+334-            Sweety AI
+335-          </h1>
+336-          <p className="text-sm text-gray-400 font-medium tracking-wide">
+337-            Your Premium Interactive Study Assistant
+338-          </p>
+339-        </div>
+340-
+341-        {/* Conditional Screen Render */}
+342-        <AnimatePresence mode="wait">
+343-          
+344-          {/* Welcome Screen */}
+345-          {screen === 'welcome' && (
+346-            <motion.div
+347-              key="welcome-screen"
+348-              initial={{ opacity: 0, x: -10 }}
+349-              animate={{ opacity: 1, x: 0 }}
+350-              exit={{ opacity: 0, x: 10 }}
+351-              className="space-y-6"
+352-            >
+353-              <div className="space-y-3.5 bg-white/5 p-5 rounded-2xl border border-white/5">
+354-                <div className="flex items-start gap-3">
+355-                  <div className="p-2 bg-pink-500/10 text-pink-400 rounded-lg shrink-0 mt-0.5">
+356-                    <MessageSquare size={16} />
+357-                  </div>
+358-                  <div>
+359-                    <h4 className="text-sm font-semibold text-white">Voice-to-Voice Mentor</h4>
+360-                    <p className="text-xs text-gray-400 leading-relaxed">Engage in continuous, ultra-realistic real-time speech queries with Sweety.</p>
+361-                  </div>
+362-                </div>
+363-
+364-                <div className="flex items-start gap-3">
+365-                  <div className="p-2 bg-purple-500/10 text-purple-400 rounded-lg shrink-0 mt-0.5">
+366-                    <BookOpen size={16} />
+367-                  </div>
+368-                  <div>
+369-                    <h4 className="text-sm font-semibold text-white">Advanced Learning Hub</h4>
+370-                    <p className="text-xs text-gray-400 leading-relaxed">Boost productivity using the study scheduler, notes publisher, and custom quizzes.</p>
+371-                  </div>
+372-                </div>
+373-
+374-                <div className="flex items-start gap-3">
+375-                  <div className="p-2 bg-indigo-500/10 text-indigo-400 rounded-lg shrink-0 mt-0.5">
+376-                    <Shield size={16} />
+377-                  </div>
+378-                  <div>
+379-                    <h4 className="text-sm font-semibold text-white">Secure Cloud Sync</h4>
+380-                    <p className="text-xs text-gray-400 leading-relaxed">Safeguard your progress, notes, and academic files synced directly to your workspace.</p>
+381-                  </div>
+382-                </div>
+383-              </div>
+384-
+385-              {errorMsg && (
+386-                <div className="p-3 bg-rose-500/10 border border-rose-500/20 text-rose-300 rounded-2xl text-xs flex gap-2 items-start animate-fade">
+387-                  <AlertTriangle size={14} className="shrink-0 mt-0.5 text-rose-400" />
+388-                  <span>{errorMsg}</span>
+389-                </div>
+390-              )}
+391-              {successMsg && (
+392-                <div className="p-3 bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 rounded-2xl text-xs flex gap-2 items-start">
+393-                  <Check size={14} className="shrink-0 mt-0.5 text-emerald-400" />
+394-                  <span>{successMsg}</span>
+395-                </div>
+396-              )}
+397-
+398-              <div className="flex flex-col gap-3">
+399-                <button
+400-                  onClick={handleGoogleSignIn}
+401-                  disabled={loading}
+402-                  className="w-full py-4 bg-gradient-to-r from-pink-500 via-purple-600 to-indigo-500 rounded-2xl text-white font-semibold shadow-lg shadow-purple-500/20 hover:brightness-110 active:scale-98 transition-all cursor-pointer flex items-center justify-center gap-3 text-sm"
+403-                >
+404-                  <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="currentColor">
+405-                    <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="currentColor"/>
+406-                    <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="currentColor"/>
+407-                    <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l3.66-2.85z" fill="currentColor"/>
+408-                    <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.85c.87-2.6 3.3-4.53 6.16-4.53z" fill="currentColor"/>
+409-                  </svg>
+410-                  <span>{loading ? 'Securing Link...' : 'Continue with Google'}</span>
+411-                </button>
+412-                <button
+413-                  onClick={() => setScreen('admin_login')}
+414-                  className="text-xs text-purple-400 hover:text-purple-300 transition-colors uppercase tracking-widest font-semibold text-center mt-3 cursor-pointer"
+415-                >
+416-                  System Admin Panel
+417-                </button>
+418-              </div>
+419-            </motion.div>
+420-          )}
+421-
+422-          {/* Admin Login Screen */}
+423-          {screen === 'admin_login' && (
+424-            <motion.form
+425-              key="admin-screen"
+426-              onSubmit={handleAdminBypass}
+427-              initial={{ opacity: 0, y: 10 }}
+428-              animate={{ opacity: 1, y: 0 }}
+429-              exit={{ opacity: 0, y: -10 }}
+430-              className="space-y-4"
+431-            >
+432-              <div className="p-3 bg-purple-500/10 border border-purple-500/20 rounded-2xl text-xs text-purple-300 flex gap-2 items-start">
+433-                <ShieldAlert size={14} className="shrink-0 mt-0.5 text-purple-400" />
+434-                <span>Authorized developer bypass portal. Operator authorization required.</span>
+435-              </div>
+436-
+437-              <div className="space-y-1.5">
+438-                <label className="text-xs uppercase tracking-wider text-gray-400 font-semibold">Admin Passkey Sequence</label>
+439-                <div className="relative">
+440-                  <Lock size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
+441-                  <input
+442-                    type="password"
+443-                    required
+444-                    value={passcode}
+445-                    onChange={(e) => setPasscode(e.target.value)}
+446-                    placeholder="Enter bypass passcode"
+447-                    className="w-full bg-white/5 border border-white/10 rounded-2xl pl-11 pr-4 py-3.5 text-sm placeholder:text-gray-500 focus:outline-none focus:border-purple-500 transition-colors text-center font-mono tracking-widest text-pink-400"
+448-                  />
+449-                </div>
+450-              </div>
+451-
+452-              {errorMsg && (
+453-                <div className="p-3 bg-rose-500/10 border border-rose-500/20 text-rose-300 rounded-2xl text-xs flex gap-2 items-start">
+454-                  <AlertTriangle size={14} className="shrink-0 mt-0.5 text-rose-400" />
+455-                  <span>{errorMsg}</span>
+456-                </div>
+457-              )}
+458-              {successMsg && (
+459-                <div className="p-3 bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 rounded-2xl text-xs flex gap-2 items-start animate-pulse">
+460-                  <Check size={14} className="shrink-0 mt-0.5 text-emerald-400" />
+461-                  <span>{successMsg}</span>
+462-                </div>
+463-              )}
+464-
+465-              <div className="flex gap-3 pt-2">
+466-                <button
+467-                  type="button"
+468-                  onClick={() => setScreen('welcome')}
+469-                  className="flex-1 py-3 bg-white/5 border border-white/10 rounded-2xl text-white font-semibold transition-all active:scale-98 cursor-pointer text-sm"
+470-                >
+471-                  Cancel
+472-                </button>
+473-                <button
+474-                  type="submit"
+475-                  className="flex-1 py-3 bg-gradient-to-r from-pink-500 via-purple-600 to-indigo-500 rounded-2xl text-white font-semibold hover:brightness-110 active:scale-98 transition-all cursor-pointer text-sm"
+476-                >
+477-                  Unlock Admin
+478-                </button>
+479-              </div>
+480-            </motion.form>
+481-          )}
+482-
+483-        </AnimatePresence>
+484-      </motion.div>
+485-
+486-      {/* Made by Krish Watermark */}
+487-      <div className="mt-8 text-gray-500/40 font-semibold tracking-[0.25em] text-[10px] uppercase font-mono animate-pulse">
+488-        Made by Krish
+489-      </div>
+490-      </div>
+491-    </div>
+492-  );
+493-}
+494-export default function App() {
+495-  const { appSettings } = useLiveSettings();
+496-  
+497-  const [currentTheme, setCurrentTheme] = useState<keyof typeof THEMES>(() => {
+498-    return (localStorage.getItem('sweety_active_theme') as any) || 'dark';
+499-  });
+500-  const theme = THEMES[currentTheme];
+501-
+502-  const [micLevel, setMicLevel] = useState(0);
+503-  const [outputLevel, setOutputLevel] = useState(0);
+504-  const smoothedOutputLevelRef = useRef(0);
+505-  const [isActive, setIsActive] = useState(false);
+506-  const [isListening, setIsListening] = useState(false);
+507-  const [isSpeaking, setIsSpeaking] = useState(false);
+508-  const [error, setError] = useState<string | null>(null);
+509-  const [transcription, _setTranscription] = useState<{user: string, sweety: string}>({user: '', sweety: ''});
+510-  const transcriptionRef = useRef({ user: '', sweety: '' });
+511-  const setTranscription = (val: {user: string, sweety: string} | ((prev: {user: string, sweety: string}) => {user: string, sweety: string})) => {
+512-    _setTranscription(prev => {
+513-      const next = typeof val === 'function' ? val(prev) : val;
+514-      transcriptionRef.current = next;
+515-      return next;
+516-    });
+517-  };
+518-  const [chatHistory, setChatHistory] = useState<{role: 'user' | 'model', text: string, timestamp: string}[]>([]);
+519-  const [showDebug, setShowDebug] = useState(false);
+520-  const [showMenu, setShowMenu] = useState(false);
+521-  const [showThemeModal, setShowThemeModal] = useState(false);
+522-  const [lastMessageTime, setLastMessageTime] = useState(0);
+523-  const [systemPower, setSystemPower] = useState(98);
+524-  
+525-
+526-  const [pendingAction, setPendingAction] = useState<{
+527-    id: string;
+528-    name: string;
+529-    args: any;
+530-    title: string;
+531-    description: string;
+532-    onConfirm: () => any;
+533-  } | null>(null);
+534-
+535-  const [systemLogs, setSystemLogs] = useState<string[]>([
+536-    'Kernel diagnostic complete.',
+537-    'System standby: Sweetness factor calibrated.',
+538-    'Ready for user vocal instruction.'
+539-  ]);
+540-
+541-  const [showAuthModal, setShowAuthModal] = useState(false);
+542-  const [showMemoryJournal, setShowMemoryJournal] = useState(false);

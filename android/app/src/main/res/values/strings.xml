@@ -1,0 +1,8 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">SweetyAI</string>
+    <string name="title_activity_main">SweetyAI</string>
+    <string name="package_name">com.sweetyai.app</string>
+    <string name="custom_url_scheme">com.sweetyai.app</string>
+    <string name="default_web_client_id">934325615371-8jpui140c3fentk7n2i6qfg9lin7ncv7.apps.googleusercontent.com</string>
+</resources>

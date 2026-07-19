@@ -1,0 +1,24 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    match /stories/{userId}/{allPaths=**} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null && request.auth.uid == userId;
+    }
+    
+    match /avatars/{userId}/{allPaths=**} {
+      allow read: if true;
+      allow write: if request.auth != null && request.auth.uid == userId;
+    }
+
+    match /chat_media/{convId}/{allPaths=**} {
+      allow read: if request.auth != null && (convId.matches(".*" + request.auth.uid + ".*"));
+      allow write: if request.auth != null && (convId.matches(".*" + request.auth.uid + ".*"));
+    }
+
+    // Default catch-all
+    match /{allPaths=**} {
+      allow read, write: if request.auth != null;
+    }
+  }
+}

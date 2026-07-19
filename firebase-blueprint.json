@@ -1,0 +1,325 @@
+{
+  "entities": {
+    "User": {
+      "title": "User Profile and Configuration State",
+      "description": "Stores user configuration, device settings, logs, and Sweety conversational memory logs.",
+      "type": "object",
+      "properties": {
+        "email": {
+          "type": "string",
+          "description": "User email address"
+        },
+        "theme": {
+          "type": "string",
+          "description": "Active UI color theme identifier"
+        },
+        "settings": {
+          "type": "object",
+          "description": "Simulated hardware switches (Wi-Fi, Bluetooth, etc.)"
+        },
+        "systemLogs": {
+          "type": "array",
+          "description": "Sub-array of recent system event traces"
+        },
+        "messageLogs": {
+          "type": "array",
+          "description": "Simulated message/SMS inbox history"
+        },
+        "customAvatarUrl": {
+          "type": "string",
+          "description": "User uploaded custom base64 avatar URL or null"
+        },
+        "chatHistory": {
+          "type": "array",
+          "description": "Sequence of completed conversational exchanges (memories) with Sweety"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Document creation timestamp"
+        },
+        "lastSynced": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Last cloud synchronization timestamp"
+        }
+      },
+      "required": ["email"]
+    },
+    "Login": {
+      "title": "User Login Record",
+      "description": "Logs daily user login attempts for developer analytics tracking.",
+      "type": "object",
+      "properties": {
+        "uid": {
+          "type": "string",
+          "description": "Unique identifier of the user"
+        },
+        "email": {
+          "type": "string",
+          "description": "Email address of the logging user"
+        },
+        "timestamp": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Exact moment of login"
+        },
+        "dateStr": {
+          "type": "string",
+          "description": "Date representation in YYYY-MM-DD format"
+        }
+      },
+      "required": ["uid", "email", "dateStr"]
+    },
+    "RedeemCode": {
+      "title": "Redeem Code configuration",
+      "description": "Secure admin-managed premium activation codes and usage counts.",
+      "type": "object",
+      "properties": {
+        "code": {
+          "type": "string",
+          "description": "Unique uppercase alphanumeric activation code"
+        },
+        "validityType": {
+          "type": "string",
+          "description": "Duration or date mapping for premium access"
+        },
+        "customExpiryDate": {
+          "type": "string",
+          "description": "Optional ISO custom expiry timestamp"
+        },
+        "isSingleUse": {
+          "type": "boolean",
+          "description": "Whether this code can only be redeemed once in total"
+        },
+        "maxActivations": {
+          "type": "integer",
+          "description": "Maximum allowed number of redemptions"
+        },
+        "activationCount": {
+          "type": "integer",
+          "description": "Number of times this code has been successfully redeemed"
+        },
+        "isEnabled": {
+          "type": "boolean",
+          "description": "Active state switch"
+        },
+        "isRevoked": {
+          "type": "boolean",
+          "description": "Revoked state flag"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Creation timestamp"
+        },
+        "createdBy": {
+          "type": "string",
+          "description": "Admin email who created the code"
+        },
+        "redeemedBy": {
+          "type": "array",
+          "description": "Array of users who have redeemed this code"
+        }
+      },
+      "required": ["code", "validityType", "isSingleUse", "maxActivations", "activationCount", "isEnabled", "isRevoked", "createdAt"]
+    },
+    "Conversation": {
+      "title": "Peer to Peer Chat Conversation",
+      "description": "Stores conversation state, typing, recording states, and last message metadata.",
+      "type": "object",
+      "properties": {
+        "participants": { "type": "array", "description": "Array of user IDs involved in this conversation" },
+        "participantDetails": { "type": "object", "description": "Cached names and avatar details of participants" },
+        "unreadCount": { "type": "object", "description": "Map of user ID to unread message counts" },
+        "typing": { "type": "object", "description": "Map of user ID to typing boolean states" },
+        "recordingVoice": { "type": "object", "description": "Map of user ID to recording voice boolean states" },
+        "blockedBy": { "type": "array", "description": "Array of user IDs who blocked this chat" },
+        "lastMessage": { "type": "object", "description": "Metadata map of the latest message" },
+        "updatedAt": { "type": "string", "format": "date-time", "description": "Last updated timestamp" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Created timestamp" }
+      },
+      "required": ["participants"]
+    },
+    "Message": {
+      "title": "Chat Message",
+      "description": "Individual text, image, voice note, or file message.",
+      "type": "object",
+      "properties": {
+        "senderId": { "type": "string", "description": "Sender User ID" },
+        "content": { "type": "string", "description": "Text message content" },
+        "type": { "type": "string", "description": "Message type (text, image, voice, file)" },
+        "mediaUrl": { "type": "string", "description": "Optional attachment static file URL" },
+        "mediaName": { "type": "string", "description": "Optional original name of shared file" },
+        "mediaSize": { "type": "integer", "description": "Optional file size in bytes" },
+        "replyTo": { "type": "object", "description": "Metadata of message being replied to" },
+        "reactions": { "type": "object", "description": "Map of reaction type to list of user IDs" },
+        "seenBy": { "type": "array", "description": "Array of user IDs who have seen this message" },
+        "deletedForEveryone": { "type": "boolean", "description": "Flag for permanently deleted message content" },
+        "deletedFor": { "type": "array", "description": "Array of user IDs who deleted this message for themselves" },
+        "edited": { "type": "boolean", "description": "Flag showing if message has been modified" },
+        "editedAt": { "type": "string", "format": "date-time", "description": "Timestamp of edit action" },
+        "timestamp": { "type": "string", "format": "date-time", "description": "Sent timestamp" }
+      },
+      "required": ["senderId", "content", "type", "timestamp"]
+    },
+    "Story": {
+      "title": "Story",
+      "description": "User story",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "mediaUrl": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "expiresAt": { "type": "string", "format": "date-time" },
+        "viewers": { "type": "array" }
+      },
+      "required": ["userId", "mediaUrl", "createdAt", "expiresAt"]
+    },
+    "Follow": {
+      "title": "Follow",
+      "description": "Follow relationship",
+      "type": "object",
+      "properties": {
+        "followerId": { "type": "string" },
+        "followingId": { "type": "string" },
+        "status": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["followerId", "followingId", "status", "createdAt"]
+    },
+    "Group": {
+      "title": "Group",
+      "description": "Group chat",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "photoURL": { "type": "string" },
+        "ownerId": { "type": "string" },
+        "members": { "type": "array" }
+      },
+      "required": ["name", "ownerId"]
+    },
+    "Notification": {
+      "title": "Notification",
+      "description": "User notification",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "type": { "type": "string" },
+        "message": { "type": "string" },
+        "read": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "type", "message", "createdAt"]
+    },
+    "FriendRequest": {
+      "title": "Friend Request",
+      "description": "A request to connect as friends",
+      "type": "object",
+      "properties": {
+        "senderId": { "type": "string" },
+        "receiverId": { "type": "string" },
+        "status": { "type": "string", "enum": ["pending", "accepted", "rejected"] },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["senderId", "receiverId", "status", "createdAt"]
+    },
+    "Friendship": {
+      "title": "Friendship",
+      "description": "Established connection between two users",
+      "type": "object",
+      "properties": {
+        "userIds": { "type": "array", "items": { "type": "string" } },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userIds", "createdAt"]
+    },
+    "Call": {
+      "title": "Call",
+      "description": "Voice or video call signaling",
+      "type": "object",
+      "properties": {
+        "callerId": { "type": "string" },
+        "receiverId": { "type": "string" },
+        "type": { "type": "string" },
+        "status": { "type": "string" },
+        "offer": { "type": "object" },
+        "answer": { "type": "object" },
+        "iceCandidates": { "type": "array" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "endedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["callerId", "receiverId", "type", "status", "createdAt"]
+    },
+    "Report": {
+      "title": "User or Message Safety Report",
+      "description": "Stores user filed reports for moderation and administrative safety checks.",
+      "type": "object",
+      "properties": {
+        "reporterId": { "type": "string", "description": "Reporter's user ID" },
+        "reportedUserId": { "type": "string", "description": "Reported user ID (if reporting a user)" },
+        "reportedMessageId": { "type": "string", "description": "Reported message ID" },
+        "reportedMessageContent": { "type": "string", "description": "Content of message reported" },
+        "conversationId": { "type": "string", "description": "Conversation ID containing the reported message" },
+        "reason": { "type": "string", "description": "Reason for filing the report" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Report creation timestamp" }
+      },
+      "required": ["reporterId", "reason", "createdAt"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "Access-controlled user documents holding system state, settings, logs, and memories."
+    },
+    "/redeem_codes/{codeId}": {
+      "schema": "RedeemCode",
+      "description": "Admin-only management, secure backend-validated redeem codes."
+    },
+    "/logins/{loginId}": {
+      "schema": "Login",
+      "description": "Daily user logins recorded to compute metrics and counts of unique active users per day."
+    },
+    "/conversations/{conversationId}": {
+      "schema": "Conversation",
+      "description": "Primary real-time conversation documents holding participant maps, typing indicators, and message metadata."
+    },
+    "/conversations/{conversationId}/messages/{messageId}": {
+      "schema": "Message",
+      "description": "Subcollection holding individual chronologically synchronized chat messages."
+    },
+    "/stories/{storyId}": {
+      "schema": "Story",
+      "description": "User stories"
+    },
+    "/follows/{followId}": {
+      "schema": "Follow",
+      "description": "Follow relationships"
+    },
+    "/groups/{groupId}": {
+      "schema": "Group",
+      "description": "Groups"
+    },
+    "/notifications/{notificationId}": {
+      "schema": "Notification",
+      "description": "Notifications"
+    },
+    "/friend_requests/{requestId}": {
+      "schema": "FriendRequest",
+      "description": "Pending friend requests"
+    },
+    "/friendships/{friendshipId}": {
+      "schema": "Friendship",
+      "description": "Confirmed friendships"
+    },
+    "/calls/{callId}": {
+      "schema": "Call",
+      "description": "Call signaling"
+    },
+    "/reports/{reportId}": {
+      "schema": "Report",
+      "description": "Admin-only access collection storing safety, block, spam, or abuse reports."
+    }
+  }
+}

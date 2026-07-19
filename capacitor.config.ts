@@ -1,0 +1,26 @@
+import type { CapacitorConfig } from '@capacitor/cli';
+
+const config: CapacitorConfig = {
+  appId: 'com.sweetyai.app',
+  appName: 'SweetyAI',
+  webDir: 'dist',
+  server: {
+    hostname: 'localhost',
+    androidScheme: 'http',
+    allowNavigation: [
+      'sweetyai-5343d.firebaseapp.com',
+      '*.firebaseapp.com',
+      '*.googleapis.com',
+      'accounts.google.com'
+    ]
+  },
+  appendUserAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36',
+  plugins: {
+    FirebaseAuthentication: {
+      skipNativeAuth: false,
+      providers: ["google.com"]
+    }
+  }
+};
+
+export default config;

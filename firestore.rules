@@ -1,0 +1,188 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Helper functions
+    function isSignedIn() {
+      return request.auth != null;
+    }
+    
+    function isEmailVerified() {
+      return isSignedIn() && request.auth.token.email_verified == true;
+    }
+    
+    function isAdmin() {
+      return isSignedIn() && request.auth.token.email == 'krishanumajeeff@gmail.com';
+    }
+    
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    // Default deny
+    match /{document=**} {
+      allow read, write: if isAdmin();
+    }
+
+    // Top-level notifications (just in case)
+    match /notifications/{id} {
+      allow create: if isSignedIn();
+      allow read, update, delete: if isSignedIn() && (resource == null || resource.data.userId == request.auth.uid) || isAdmin();
+    }
+
+    // Admin resources
+    match /admin_classes/{id} { allow read: if isSignedIn(); }
+    match /admin_subjects/{id} { allow read: if isSignedIn(); }
+    match /admin_chapters/{id} { allow read: if isSignedIn(); }
+    match /admin_pdfs/{id} { allow read: if isSignedIn(); }
+    match /admin_videos/{id} { allow read: if isSignedIn(); }
+    match /admin_notes/{id} { allow read: if isSignedIn(); }
+    match /admin_images/{id} { allow read: if isSignedIn(); }
+    match /admin_audio/{id} { allow read: if isSignedIn(); }
+    match /admin_mock_tests/{id} { allow read: if isSignedIn(); }
+    match /admin_pyq/{id} { allow read: if isSignedIn(); }
+    match /admin_quizzes/{id} { allow read: if isSignedIn(); }
+    match /admin_assignments/{id} { allow read: if isSignedIn(); }
+    match /admin_files/{id} { allow read: if isSignedIn(); }
+    
+    match /settings/{id} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+    
+    match /admin_settings/{id} { 
+      allow read: if true; 
+      allow write: if isAdmin();
+    }
+
+    match /announcements/{id} { 
+      allow read: if true; 
+    }
+    
+    match /admin_notifications/{id} { 
+      allow read: if true; 
+    }
+
+    // User data
+    match /users/{userId} {
+      allow read: if isSignedIn();
+      allow write: if isOwner(userId) || isAdmin();
+      
+      match /notifications/{notifId} {
+        allow create: if isSignedIn();
+        allow read, update, delete: if isOwner(userId) || isAdmin();
+      }
+      
+      match /routines/{id} {
+        allow read, write: if isOwner(userId) || isAdmin();
+      }
+      
+      match /histories/{id} {
+        allow read, write: if isOwner(userId) || isAdmin();
+      }
+      
+      match /premium_history/{id} {
+        allow read, write: if isOwner(userId) || isAdmin();
+      }
+
+      match /{document=**} {
+        allow read, write: if isOwner(userId) || isAdmin();
+      }
+    }
+    
+    match /logins/{loginId} {
+      allow read: if isAdmin() || (isSignedIn() && resource.data.uid == request.auth.uid);
+      allow create, update: if isSignedIn() && request.resource.data.uid == request.auth.uid;
+    }
+
+    match /redeem_codes/{codeId} {
+      allow get, update: if isSignedIn();
+      allow list, create, delete: if isAdmin();
+    }
+
+    // Conversations and Messaging
+    function isConversationParticipant(convId) {
+      return isSignedIn() && 
+        exists(/databases/$(database)/documents/conversations/$(convId)) && 
+        (request.auth.uid in get(/databases/$(database)/documents/conversations/$(convId)).data.participants);
+    }
+
+    match /conversations/{conversationId} {
+      // Allow get if the ID contains the user's UID (robust for existence checks)
+      allow get: if isSignedIn() && conversationId.matches(".*" + request.auth.uid + ".*");
+      // Allow list if they are a participant
+      allow list: if isAdmin() || (isSignedIn() && request.auth.uid in resource.data.participants);
+      // Allow create if they are a participant
+      allow create: if isSignedIn() && request.auth.uid in request.resource.data.participants;
+      // Allow update if they are a participant
+      allow update: if isAdmin() || (isSignedIn() && (
+        request.auth.uid in resource.data.participants ||
+        conversationId.matches(".*" + request.auth.uid + ".*")
+      ));
+      allow delete: if isAdmin() || (isSignedIn() && request.auth.uid in resource.data.participants);
+
+      match /messages/{messageId} {
+        allow read: if isAdmin() || isConversationParticipant(conversationId) || conversationId.matches(".*" + request.auth.uid + ".*");
+        allow create: if isSignedIn() && (isConversationParticipant(conversationId) || conversationId.matches(".*" + request.auth.uid + ".*"));
+        allow update: if isAdmin() || isConversationParticipant(conversationId) || conversationId.matches(".*" + request.auth.uid + ".*");
+        allow delete: if isAdmin() || (isSignedIn() && resource.data.senderId == request.auth.uid);
+      }
+    }
+
+    match /reports/{reportId} {
+      allow create: if isSignedIn();
+      allow read, write: if isAdmin();
+    }
+
+    match /stories/{storyId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
+      allow update: if isSignedIn();
+      allow delete: if isAdmin() || (isSignedIn() && resource.data.userId == request.auth.uid);
+    }
+
+    match /follows/{followId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn() && request.resource.data.followerId == request.auth.uid;
+      allow delete: if isAdmin() || (isSignedIn() && resource.data.followerId == request.auth.uid);
+    }
+
+    match /calls/{callId} {
+      allow read: if isAdmin() || (isSignedIn() && (request.auth.uid == resource.data.callerId || request.auth.uid == resource.data.receiverId));
+      allow create: if isSignedIn() && (request.auth.uid == request.resource.data.callerId || request.auth.uid == request.resource.data.receiverId);
+      allow update: if isAdmin() || (isSignedIn() && (request.auth.uid == resource.data.callerId || request.auth.uid == resource.data.receiverId));
+      allow delete: if isAdmin() || (isSignedIn() && (request.auth.uid == resource.data.callerId || request.auth.uid == resource.data.receiverId));
+    }
+
+    match /friend_requests/{requestId} {
+      allow read: if isAdmin() || (isSignedIn() && (resource.data.senderId == request.auth.uid || resource.data.receiverId == request.auth.uid));
+      allow create: if isSignedIn() && request.resource.data.senderId == request.auth.uid;
+      allow update: if isAdmin() || (isSignedIn() && (resource.data.receiverId == request.auth.uid || resource.data.senderId == request.auth.uid));
+      allow delete: if isAdmin() || (isSignedIn() && (resource.data.senderId == request.auth.uid || resource.data.receiverId == request.auth.uid));
+    }
+
+    match /friendships/{friendshipId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn();
+      allow delete: if isAdmin() || (isSignedIn() && request.auth.uid in resource.data.userIds);
+    }
+
+    match /groups/{groupId} {
+      allow read: if isAdmin() || (isSignedIn() && request.auth.uid in resource.data.members);
+      allow create: if isSignedIn();
+      allow update, delete: if isAdmin() || (isSignedIn() && request.auth.uid == resource.data.ownerId);
+    }
+
+    match /analytics_dau/{id} {
+      allow read, write: if isAdmin();
+    }
+
+    match /analytics_sessions/{id} {
+      allow read, write: if isAdmin();
+    }
+
+    match /admin_connection_logs/{logId} {
+      allow create: if isSignedIn();
+      allow read, write: if isAdmin();
+    }
+  }
+}
