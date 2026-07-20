@@ -5,7 +5,8 @@ import { collection, query, orderBy, onSnapshot, limit } from 'firebase/firestor
 import { 
   BookOpen, Flame, CheckCircle, Clock, Play, GraduationCap, FileText, 
   Award, TrendingUp, Calendar, ChevronRight, Activity, Sparkles, BookMarked,
-  Volume2, Shield, User, ArrowRight, Video, Calculator, BrainCircuit, Palette, CheckCircle2, AlertCircle, Bookmark, Megaphone, Menu
+  Volume2, Shield, User, ArrowRight, Video, Calculator, BrainCircuit, Palette, CheckCircle2, AlertCircle, Bookmark, Megaphone, Menu,
+  Smartphone, Battery, Wifi, HardDrive, AlarmClock, Music, Camera, FolderOpen
 } from 'lucide-react';
 import { Routine, AppLanguage } from '../types';
 import { useLiveSettings } from '../lib/useLiveSettings';
@@ -19,6 +20,10 @@ interface HomeDashboardProps {
   language: AppLanguage;
   handleToggleCompleted: (routine: Routine) => Promise<void>;
   toggleDrawer: () => void;
+  isAuthorizedDev?: boolean;
+  isAdminViewActive?: boolean;
+  onToggleAdmin?: () => void;
+  setDeviceUtility?: (utility: { type: any; args?: any }) => void;
 }
 
 const DASH_TRANSLATIONS = {
@@ -170,7 +175,11 @@ export function HomeDashboard({
   routines,
   language,
   handleToggleCompleted,
-  toggleDrawer
+  toggleDrawer,
+  isAuthorizedDev = false,
+  isAdminViewActive = false,
+  onToggleAdmin,
+  setDeviceUtility
 }: HomeDashboardProps) {
   const { appSettings } = useLiveSettings();
   const dt = DASH_TRANSLATIONS[language] || DASH_TRANSLATIONS.English;
@@ -246,12 +255,24 @@ export function HomeDashboard({
   return (
     <div className="w-full max-w-7xl mx-auto space-y-6 pb-32 text-white">
       
-      <button 
-        onClick={toggleDrawer}
-        className="p-3 bg-white/5 border border-white/10 rounded-2xl text-white hover:bg-white/10 transition-all"
-      >
-        <Menu size={24} />
-      </button>
+      <div className="flex items-center justify-between">
+        <button 
+          onClick={toggleDrawer}
+          className="p-3 bg-white/5 border border-white/10 rounded-2xl text-white hover:bg-white/10 transition-all cursor-pointer"
+        >
+          <Menu size={24} />
+        </button>
+
+        {isAuthorizedDev && onToggleAdmin && (
+          <button 
+            onClick={onToggleAdmin}
+            className="flex items-center gap-2 px-4 py-2.5 bg-pink-500/10 hover:bg-pink-500/20 text-pink-400 border border-pink-500/20 rounded-2xl transition-all font-bold text-xs cursor-pointer shadow-lg"
+          >
+            <Shield size={16} />
+            Switch to Admin Panel
+          </button>
+        )}
+      </div>
 
       {/* 1. Header Greeting Card */}
       <motion.div 
@@ -600,6 +621,55 @@ export function HomeDashboard({
 
         </div>
       </div>
+
+      {/* Sweety Phone Control & Assistant Hub */}
+      {setDeviceUtility && (
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <h3 className="text-lg font-bold uppercase tracking-wider text-indigo-300 flex items-center gap-2">
+              <Smartphone size={20} className="text-pink-400" />
+              <span>Phone Control & Assistant Utilities</span>
+            </h3>
+            <span className="text-[10px] font-mono font-bold uppercase text-gray-500 bg-white/5 px-2 py-0.5 rounded border border-white/5">
+              Active Control Centre
+            </span>
+          </div>
+
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4">
+            {[
+              { type: 'alarm', label: 'Alarms', icon: AlarmClock, color: 'text-pink-400 bg-pink-500/10', desc: 'Set & manage active sleep alarms' },
+              { type: 'reminder', label: 'Reminders', icon: CheckCircle, color: 'text-indigo-400 bg-indigo-500/10', desc: 'Create priority lists & reminders' },
+              { type: 'calendar', label: 'Academic Events', icon: Calendar, color: 'text-purple-400 bg-purple-500/10', desc: 'Schedule curriculum & school tasks' },
+              { type: 'media_playback', label: 'Lofi Player', icon: Music, color: 'text-amber-400 bg-amber-500/10', desc: 'Vinyl study streams with Sweety' },
+              { type: 'battery', label: 'Battery Health', icon: Battery, color: 'text-emerald-400 bg-emerald-500/10', desc: 'Voltage & optimization logs' },
+              { type: 'storage', label: 'Storage', icon: HardDrive, color: 'text-blue-400 bg-blue-500/10', desc: 'FHD internal & metadata disks' },
+              { type: 'internet_status', label: 'Internet Standard', icon: Wifi, color: 'text-teal-400 bg-teal-500/10', desc: 'Safe VPN connection & latency' },
+              { type: 'calculator', label: 'Scientific Calc', icon: Calculator, color: 'text-cyan-400 bg-cyan-500/10', desc: 'Resolve math formulas instantly' },
+              { type: 'camera', label: 'Camera Roll', icon: Camera, color: 'text-rose-400 bg-rose-500/10', desc: 'Capture snaps & toggle flash options' },
+              { type: 'gallery', label: 'FHD Gallery', icon: FolderOpen, color: 'text-yellow-400 bg-yellow-500/10', desc: 'Review captures in beautiful lightbox' }
+            ].map((ut, idx) => (
+              <motion.div
+                key={idx}
+                whileHover={{ scale: 1.03, y: -4 }}
+                onClick={() => setDeviceUtility({ type: ut.type })}
+                className="p-4.5 rounded-2xl bg-white/5 border border-white/10 hover:border-indigo-500/40 transition-all shadow-lg flex flex-col justify-between gap-3 cursor-pointer group"
+              >
+                <div className={`p-2.5 rounded-xl w-fit ${ut.color} group-hover:scale-110 transition-transform`}>
+                  <ut.icon size={18} />
+                </div>
+                <div>
+                  <h4 className="font-bold text-xs text-white tracking-wide group-hover:text-indigo-300 transition-colors">{ut.label}</h4>
+                  <p className="text-[9px] text-gray-400 mt-0.5 leading-tight">{ut.desc}</p>
+                </div>
+                <div className="flex items-center gap-1 text-[8px] text-indigo-300 font-bold uppercase tracking-wider">
+                  <span>Launch Tool</span>
+                  <ChevronRight size={10} />
+                </div>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* 5. Mock Tests, Exams & Performance Analytics */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">

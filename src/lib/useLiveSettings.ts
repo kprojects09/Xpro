@@ -9,7 +9,7 @@ export function useLiveSettings() {
     primaryColor: '#ec4899',
     themeType: 'dark',
     welcomeMessage: 'Welcome to your premium study mentor',
-    version: '3.7.2',
+    version: '3.9',
     footerText: 'Powered by Antigravity',
     contactEmail: 'support@neostudy.ai',
     appLogoUrl: '',

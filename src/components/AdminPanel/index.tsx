@@ -121,7 +121,7 @@ const NAV_ITEMS = [
   { id: 'analytics', label: 'Analytics', icon: BarChart, category: 'System' },
 ];
 
-export function AdminDashboard({ onLogout }: { onLogout: () => void; currentUser?: any; onClose?: () => void }) {
+export function AdminDashboard({ onLogout, onClose }: { onLogout: () => void; currentUser?: any; onClose?: () => void }) {
   const [activeTab, setActiveTab] = useState('app_control');
   const [sidebarOpen, setSidebarOpen] = useState(true);
 
@@ -198,10 +198,19 @@ export function AdminDashboard({ onLogout }: { onLogout: () => void; currentUser
               ))}
             </div>
 
-            <div className="p-4 border-t border-white/10">
+            <div className="p-4 border-t border-white/10 space-y-2">
+              {onClose && (
+                <button 
+                  onClick={onClose}
+                  className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-pink-400 hover:bg-pink-500/10 transition-all cursor-pointer font-bold"
+                >
+                  <LayoutDashboard size={18} />
+                  User Mode
+                </button>
+              )}
               <button 
                 onClick={onLogout}
-                className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-rose-400 hover:bg-rose-500/10 transition-all"
+                className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-rose-400 hover:bg-rose-500/10 transition-all cursor-pointer"
               >
                 <LogOut size={18} />
                 Logout Admin
@@ -221,8 +230,18 @@ export function AdminDashboard({ onLogout }: { onLogout: () => void; currentUser
             </button>
             <h1 className="font-semibold text-lg">{NAV_ITEMS.find(i => i.id === activeTab)?.label || 'Dashboard'}</h1>
           </div>
-          <div className="flex items-center gap-3 text-sm font-bold text-emerald-400 bg-emerald-500/10 px-3 py-1.5 rounded-full border border-emerald-500/20">
-            <CheckCircle size={14} /> LIVE SYNC ACTIVE
+          <div className="flex items-center gap-4">
+            {onClose && (
+              <button 
+                onClick={onClose}
+                className="text-xs font-bold bg-pink-500/20 hover:bg-pink-500/30 text-pink-400 border border-pink-500/30 px-3.5 py-1.5 rounded-xl transition-all cursor-pointer"
+              >
+                Switch to User Mode
+              </button>
+            )}
+            <div className="flex items-center gap-3 text-sm font-bold text-emerald-400 bg-emerald-500/10 px-3 py-1.5 rounded-full border border-emerald-500/20">
+              <CheckCircle size={14} /> LIVE SYNC ACTIVE
+            </div>
           </div>
         </header>
 

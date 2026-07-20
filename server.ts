@@ -218,9 +218,19 @@ async function createServer() {
   // Lazy initialization of Gemini client
   let genAI: GoogleGenAI | null = null;
 
-  function getGenAI() {
+  function getGenAI(customApiKey?: string) {
+    if (customApiKey) {
+      return new GoogleGenAI({ 
+        apiKey: customApiKey,
+        httpOptions: {
+          headers: {
+            'User-Agent': 'aistudio-build',
+          }
+        }
+      });
+    }
     if (!genAI) {
-      const apiKey = customApiKey || process.env.GEMINI_API_KEY;
+      const apiKey = process.env.GEMINI_API_KEY;
       if (!apiKey) {
         throw new Error('GEMINI_API_KEY environment variable is required');
       }
@@ -239,14 +249,14 @@ async function createServer() {
   // Image Generation API route
   app.post('/generate-image', async (req: Request, res: Response) => {
     try {
-      const { prompt, negativePrompt, style, aspectRatio, quality, count } = req.body;
+      const { prompt, negativePrompt, style, aspectRatio, quality, count, customApiKey } = req.body;
 
       if (!prompt) {
          res.status(400).json({ error: 'Prompt is required' });
          return;
       }
 
-      const ai = getGenAI();
+      const ai = getGenAI(customApiKey);
 
       // Formulate complete prompt combining negative prompt & style
       let fullPrompt = prompt;
@@ -382,7 +392,7 @@ async function createServer() {
       const cacheKey = JSON.stringify({ contents, systemInstruction });
       const cached = getCachedResponse(cacheKey);
 
-      const ai = getGenAI();
+      const ai = getGenAI(customApiKey);
       
       if (req.headers.accept?.includes('text/event-stream')) {
         res.setHeader('Content-Type', 'text/event-stream');

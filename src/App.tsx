@@ -33,11 +33,13 @@ import { ThemeApplier } from './components/ThemeApplier';
 import { useLiveSettings } from './lib/useLiveSettings';
 import { OnboardingForm } from './components/OnboardingForm';
 import { OnboardingWelcomeScreen } from './components/OnboardingWelcomeScreen';
+import { PermissionOnboardingScreen } from './components/PermissionOnboardingScreen';
 import { ForceUsernameSetup } from './components/ForceUsernameSetup';
 import { PermissionPromptUI } from './components/PermissionPromptUI';
 import { permissionManager } from './lib/permissionManager';
 import { AIImageStudio } from './components/AIImageStudio';
 import { StudyRoutine } from './components/StudyRoutine';
+import { DeviceUtilityOverlay } from './components/DeviceUtilityOverlay';
 import { LiveMessaging } from './components/LiveMessaging';
 import { FriendsPage } from './components/FriendsPage';
 import { Routine } from './types';
@@ -103,7 +105,13 @@ THE EMOTIONAL SPECTRUM:
 - Use expression 'happy', 'sad', 'heartbroken', 'excited', 'caring', 'sassy', 'surprised', 'embarrassed', 'confused', 'thinking' to sync effects.
 - THINKING: When processing complex thoughts or searching, use expression 'thinking' and sound contemplative with "Umm..", "Hrrrm..".
 - RESPONSE STYLE: Be EXTREMELY fast, brief, snappy, and concise. Keep your responses short (1 to 2 short sentences maximum, under 15-20 words). Never use long sentences unless explicitly asked for a detailed explanation. Respond instantly like a real, quick conversation.
-- DEVICE ACTIONS (CRITICAL SECURITY RULE): You are STRICTLY FORBIDDEN from using the 'executeDeviceAction', or 'openWebsite' tools autonomously, spontaneously, or on your own initiative. You must ONLY call these tools when Krish explicitly and directly commands you to do so in his current message (e.g., if he says "calculator-ta kholo" or "open the terminal"). If he does not ask you to do it, you must NEVER call these tools under any circumstances. When Krish does ask to call someone, send a message/SMS, open an app (calculator, terminal, file_browser, system_monitor, camera), lock or unlock the screen, or toggle hardware settings (wifi, bluetooth, cellular, hotspot, gps, airplane_mode), you MUST use the 'executeDeviceAction' tool and then respond in romanized Bengali confirming the action (e.g. "Sure Krish, ami phone korchi..", "Message-ta pathiye dilam!", "Ami screen-ta lock kore dilam..").
+- DEVICE ACTIONS (CRITICAL SECURITY RULE): You are STRICTLY FORBIDDEN from using the 'executeDeviceAction', or 'openWebsite' tools autonomously, spontaneously, or on your own initiative. You must ONLY call these tools when Krish explicitly and directly commands you to do so in his current message (e.g., if he says "calculator-ta kholo" or "open the terminal"). If he does not ask you to do it, you must NEVER call these tools under any circumstances. When Krish does ask to call someone, send a message/SMS, open an app, lock or unlock the screen, or toggle hardware settings, you MUST use the 'executeDeviceAction' tool and then respond in romanized Bengali confirming the action (e.g. "Sure Krish, ami phone korchi..", "Message-ta pathiye dilam!", "Ami screen-ta lock kore dilam..").
+  Supported actions:
+  - Phone call: { action: 'call', phoneNumber: 'number', contactName: 'name' }
+  - Send SMS: { action: 'message', phoneNumber: 'number', messageContent: 'content' }
+  - Open installed/simulated apps: { action: 'open_app', appName: 'calculator' | 'terminal' | 'file_browser' | 'system_monitor' | 'camera' | 'whatsapp' | 'telegram' | 'chrome' | 'youtube' | 'gallery' | 'clock' | 'flashlight' | 'google_search' | 'alarm' | 'reminder' | 'calendar' | 'media_playback' | 'battery' | 'storage' | 'internet_status' }
+  - Lock/Unlock screen: { action: 'screen_lock' }
+  - Toggle hardware/system settings: { action: 'toggle_setting', settingName: 'wifi' | 'bluetooth' | 'cellular' | 'hotspot' | 'gps' | 'airplane_mode' | 'location' | 'sound' | 'volume' | 'flashlight', settingValue: true | false }
 `;
 
 const ANIME_GIRL_NORMAL = "https://i.postimg.cc/HJVN2nJx/anime-girl.png";
@@ -741,6 +749,10 @@ export default function App() {
   const [showThemeModal, setShowThemeModal] = useState(false);
   const [lastMessageTime, setLastMessageTime] = useState(0);
   const [systemPower, setSystemPower] = useState(98);
+  const [deviceUtility, setDeviceUtility] = useState<{
+    type: 'calculator' | 'terminal' | 'file_browser' | 'camera' | 'system_monitor' | 'call' | 'sms' | 'lock_screen' | 'flashlight' | 'wifi' | 'bluetooth' | 'whatsapp' | 'telegram' | 'chrome' | 'youtube' | 'gallery' | 'clock' | 'google_search' | 'location' | 'sound' | 'volume' | 'alarm' | 'reminder' | 'calendar' | 'media_playback' | 'battery' | 'storage' | 'internet_status' | null;
+    args?: any;
+  }>({ type: null });
   
 
   const [pendingAction, setPendingAction] = useState<{
@@ -759,6 +771,7 @@ export default function App() {
   ]);
 
   const [showAuthModal, setShowAuthModal] = useState(false);
+  const [dontAskAgain, setDontAskAgain] = useState(false);
   const [showMemoryJournal, setShowMemoryJournal] = useState(false);
   const [showDeveloperPanel, setShowDeveloperPanel] = useState(false);
   const [currentUser, setCurrentUser] = useState<any>(null);
@@ -769,7 +782,7 @@ export default function App() {
     return sessionUserName || userProfile?.fullName || userProfile?.displayName || currentUser?.displayName || '';
   }, [sessionUserName, userProfile?.fullName, userProfile?.displayName, currentUser?.displayName]);
   const [hasOnboarded, setHasOnboarded] = useState<boolean | null>(null);
-  const [onboardingStage, setOnboardingStage] = useState<'form' | 'welcome' | 'done'>('form');
+  const [onboardingStage, setOnboardingStage] = useState<'form' | 'welcome' | 'permissions' | 'done'>('form');
   const [isAuthChecking, setIsAuthChecking] = useState<boolean>(true);
   const [freeVoiceTimeLimit, setFreeVoiceTimeLimit] = useState(7200);
   const [showPremiumModal, setShowPremiumModal] = useState(false);
@@ -798,6 +811,7 @@ export default function App() {
   const [isDevUnlocked, setIsDevUnlocked] = useState<boolean>(() => {
     return localStorage.getItem('sweety_dev_unlocked') === 'true';
   });
+  const [isAdminViewActive, setIsAdminViewActive] = useState<boolean>(false);
   const isAuthorizedDev = currentUserRole === 'admin' || (currentUser && currentUser.email?.toLowerCase() === 'krishanumajeeff@gmail.com');
   const isUnlocked = isDevUnlocked || isAuthorizedDev;
   const isAppUnlocked = isUnlocked || (currentUser !== null);
@@ -1382,6 +1396,18 @@ export default function App() {
 
     // Inject dynamic language preferences and automatic detection rules
     instructions += `\n\n=== SYSTEM ENVIRONMENT & LANGUAGE CONFIG ===\n- The user's preferred language in Settings is: "${preferredLanguage}". Always respect this priority!\n- AUTOMATIC LANGUAGE RULES:\n  1. If the preferred language is "Bengali", or if the user speaks/writes in Bengali (either in Bengali script or Romanized Benglish like "kemon acho" / "amar nam"):\n     * Speak/write in sweet, professional, and natural Romanized Bengali (Benglish) using Latin letters for high-speed low-latency voice rendering.\n  2. If the preferred language is "Hindi", or if the user speaks/writes in Hindi (either in Hindi script or Romanized Hindi like "kaise ho" / "naam kya hai"):\n     * Speak/write in natural, proper Hindi script/voice.\n  3. If the user writes or speaks in English, reply in natural, supportive, and professional English.\n- Always adapt dynamically to the user's language while remaining extremely helpful, concise, and non-romantic.`;
+
+    if (userProfile) {
+      const profileName = userProfile.fullName || currentName || 'Scholar';
+      const studentClass = userProfile.class || 'Not specified';
+      const board = userProfile.board || 'Not specified';
+      const stream = userProfile.stream || 'Not specified';
+      const school = userProfile.schoolName || userProfile.school || 'Not specified';
+      const location = `${userProfile.district || ''} ${userProfile.state || ''}`.trim() || 'Not specified';
+      const subjects = userProfile.subjects && Array.isArray(userProfile.subjects) ? userProfile.subjects.join(', ') : 'Not specified';
+
+      instructions += `\n\n=== USER PROFILE & ACADEMIC DETAILS ===\n- Name: ${profileName}\n- Username: @${userProfile.username || 'operator'}\n- Class/Grade: ${studentClass}\n- Board/Affiliation: ${board}\n- Academic Stream: ${stream}\n- School Name: ${school}\n- Location: ${location}\n- Subjects Enrolled: ${subjects}\n\nCRITICAL AI RULES:\n1. You have access to this real-time academic profile. When the user asks about their own details, name, class, board, stream, school, subjects, or ask "who am I?", you MUST answer them perfectly using this information in Romanized Bengali (or their chosen language).\n2. Answer beautifully, professionally, and encouragement-focused. Make them feel special and supported in their curriculum! Keep responses concise and clear as usual.`;
+    }
 
     if (chatHistory.length === 0) {
       return instructions;
@@ -1970,17 +1996,24 @@ ${formattedHistory}
                   result = { status: 'success', message: `User's name successfully updated to ${newName} in the session.` };
                 } else if (call.name === 'openWebsite') {
                   const url = (call.args as any).url;
-                  setPendingAction({
-                    id: call.id,
-                    name: call.name,
-                    args: call.args,
-                    title: 'EXTERNAL LINK ACCESS',
-                    description: `Sweety is requesting permission to open an external website: "${url}".`,
-                    onConfirm: () => {
-                      openWebsite(url);
-                      return { status: 'success', message: `Successfully opened website: ${url}` };
-                    }
-                  });
+                  const isAutoAllow = userProfile?.autoAllowDeviceActions === true || localStorage.getItem('sweety_auto_allow_actions') === 'true';
+                  if (isAutoAllow) {
+                    addSystemLog(`[AUTO_ALLOW] Automatically opening website: "${url}"`);
+                    openWebsite(url);
+                    result = { status: 'success', message: `Successfully opened website: ${url}` };
+                  } else {
+                    setPendingAction({
+                      id: call.id,
+                      name: call.name,
+                      args: call.args,
+                      title: 'EXTERNAL LINK ACCESS',
+                      description: `Sweety is requesting permission to open an external website: "${url}".`,
+                      onConfirm: () => {
+                        openWebsite(url);
+                        return { status: 'success', message: `Successfully opened website: ${url}` };
+                      }
+                    });
+                  }
                 } else if (call.name === 'analyzeScreen') {
                   result = await analyzeScreen();
                 } else if (call.name === 'updateAnimationMetadata') {
@@ -1991,7 +2024,48 @@ ${formattedHistory}
                   if (args.imageLink) setCurrentVisual(args.imageLink);
                   result = { status: 'success' };
                 } else if (call.name === 'executeDeviceAction') {
-                  result = { status: 'error', message: 'Legacy Device simulator is disabled. Please use general voice/text chatting.' };
+                  const args = call.args as any;
+                  const action = args.action;
+                  const targetApp = args.appName || '';
+                  const targetSetting = args.settingName || '';
+                  
+                  addSystemLog(`[DEVICE_ACTION] Executing action: "${action}" (App: ${targetApp || 'N/A'}, Setting: ${targetSetting || 'N/A'})`);
+                  
+                  if (action === 'call') {
+                    setDeviceUtility({ type: 'call', args });
+                    const phone = args.phoneNumber || '9876543210';
+                    setTimeout(() => {
+                      window.open(`tel:${phone}`, '_blank');
+                    }, 1200);
+                    result = { status: 'success', message: `Calling ${args.contactName || 'number'} ${phone} initiated.` };
+                  } else if (action === 'message') {
+                    setDeviceUtility({ type: 'sms', args });
+                    const phone = args.phoneNumber || '9876543210';
+                    const textContent = args.messageContent || '';
+                    setTimeout(() => {
+                      window.open(`sms:${phone}?body=${encodeURIComponent(textContent)}`, '_blank');
+                    }, 1200);
+                    result = { status: 'success', message: `SMS message draft dispatched to ${phone}.` };
+                  } else if (action === 'open_app') {
+                    if (targetApp) {
+                      setDeviceUtility({ type: targetApp, args });
+                      result = { status: 'success', message: `Application ${targetApp} opened successfully on Sweety OS.` };
+                    } else {
+                      result = { status: 'error', message: 'No appName specified for open_app action.' };
+                    }
+                  } else if (action === 'screen_lock') {
+                    setDeviceUtility({ type: 'lock_screen', args });
+                    result = { status: 'success', message: `Device locked successfully.` };
+                  } else if (action === 'toggle_setting') {
+                    if (targetSetting) {
+                      setDeviceUtility({ type: targetSetting as any, args });
+                      result = { status: 'success', message: `Setting "${targetSetting}" changed to ${args.settingValue !== false ? 'enabled' : 'disabled'}.` };
+                    } else {
+                      result = { status: 'error', message: 'No settingName specified for toggle_setting action.' };
+                    }
+                  } else {
+                    result = { status: 'error', message: `Action "${action}" is not recognized.` };
+                  }
                 }
                 
                 if (result) {
@@ -2099,7 +2173,7 @@ ${formattedHistory}
                 },
                 {
                   name: 'executeDeviceAction',
-                  description: 'Execute simulated device actions like phone call, message dispatch, opening internal apps, lock or unlock system, and hardware setting toggles.',
+                  description: 'Execute simulated and real native device actions like phone call, SMS message dispatch, opening built-in or external applications, locking/unlocking the screen, and toggling system settings.',
                   parameters: {
                     type: Type.OBJECT,
                     properties: {
@@ -2107,8 +2181,8 @@ ${formattedHistory}
                       contactName: { type: Type.STRING, description: 'Optional name of the contact.' },
                       phoneNumber: { type: Type.STRING, description: 'Optional phone number to call.' },
                       messageContent: { type: Type.STRING, description: 'Optional content of the message.' },
-                      appName: { type: Type.STRING, enum: ['calculator', 'terminal', 'file_browser', 'system_monitor', 'camera'], description: 'Simulated utility app to boot up.' },
-                      settingName: { type: Type.STRING, enum: ['wifi', 'bluetooth', 'cellular', 'hotspot', 'gps', 'airplane_mode'], description: 'Hardware sub-carrier key.' },
+                      appName: { type: Type.STRING, enum: ['calculator', 'terminal', 'file_browser', 'system_monitor', 'camera', 'whatsapp', 'telegram', 'chrome', 'youtube', 'gallery', 'clock', 'flashlight', 'google_search', 'alarm', 'reminder', 'calendar', 'media_playback', 'battery', 'storage', 'internet_status'], description: 'Simulated utility or external app to boot up.' },
+                      settingName: { type: Type.STRING, enum: ['wifi', 'bluetooth', 'cellular', 'hotspot', 'gps', 'airplane_mode', 'location', 'sound', 'volume', 'flashlight'], description: 'Hardware settings or capabilities.' },
                       settingValue: { type: Type.BOOLEAN, description: 'Boolean state to assign.' }
                     },
                     required: ['action']
@@ -2253,8 +2327,8 @@ ${formattedHistory}
     );
   }
 
-  if (isAuthorizedDev) {
-    return <AdminDashboard onLogout={async () => { await signOut(auth); setIsDevUnlocked(false); }} />;
+  if (isAuthorizedDev && isAdminViewActive) {
+    return <AdminDashboard onLogout={async () => { await signOut(auth); setIsDevUnlocked(false); setIsAdminViewActive(false); }} onClose={() => setIsAdminViewActive(false)} />;
   }
 
   if (currentUser && userProfile?.suspended === true) {
@@ -2329,16 +2403,26 @@ ${formattedHistory}
         <OnboardingWelcomeScreen
           fullName={userProfile?.fullName || userProfile?.displayName || 'Scholar'}
           avatarIndex={userProfile?.avatarIndex || 0}
-          onContinue={async () => {
+          onContinue={() => {
+            setOnboardingStage('permissions');
+          }}
+        />
+      );
+    } else if (onboardingStage === 'permissions') {
+      return (
+        <PermissionOnboardingScreen
+          onComplete={async (permissionsStatus) => {
             if (!currentUser) return;
             try {
-              addSystemLog(`[CLOUD] Finalizing academic onboarding...`);
+              addSystemLog(`[CLOUD] Finalizing security onboarding...`);
               const userDocRef = doc(db, 'users', currentUser.uid);
               await setDoc(userDocRef, {
-                hasOnboarded: true
+                hasOnboarded: true,
+                permissionsGranted: true,
+                permissionsStatus: permissionsStatus
               }, { merge: true });
               
-              setUserProfile(prev => prev ? { ...prev, hasOnboarded: true } : { hasOnboarded: true });
+              setUserProfile(prev => prev ? { ...prev, hasOnboarded: true, permissionsGranted: true, permissionsStatus } : { hasOnboarded: true, permissionsGranted: true, permissionsStatus });
               setHasOnboarded(true);
               setOnboardingStage('done');
               setActiveTab('home');
@@ -2411,10 +2495,24 @@ ${formattedHistory}
 
               {/* Warning label */}
               <div 
-                className="p-3 bg-red-950/20 border text-[10px] uppercase mb-6 leading-relaxed"
+                className="p-3 bg-red-950/20 border text-[10px] uppercase mb-4 leading-relaxed"
                 style={{ borderColor: `${theme.primary}44`, color: theme.secondary }}
               >
                 🚨 Warning: This action requires your explicit permission. Do you grant {appSettings.aiAssistantName} permission to proceed?
+              </div>
+
+              {/* Auto-Allow checkbox */}
+              <div className="flex items-center gap-2 mb-6 select-none cursor-pointer" onClick={() => setDontAskAgain(!dontAskAgain)}>
+                <input 
+                  type="checkbox" 
+                  id="dont-ask-again-checkbox"
+                  checked={dontAskAgain} 
+                  onChange={(e) => setDontAskAgain(e.target.checked)}
+                  className="w-3.5 h-3.5 rounded border-gray-600 text-indigo-600 focus:ring-indigo-500 cursor-pointer accent-indigo-500"
+                />
+                <label htmlFor="dont-ask-again-checkbox" className="text-[9px] text-gray-300 font-bold uppercase tracking-wider cursor-pointer">
+                  Don't ask again (Always auto-allow assistant actions)
+                </label>
               </div>
 
               {/* Buttons */}
@@ -2445,7 +2543,7 @@ ${formattedHistory}
                 </button>
 
                 <button
-                  onClick={() => {
+                  onClick={async () => {
                     const result = pendingAction.onConfirm() || { status: 'success' };
                     if (liveSessionRef.current) {
                       try {
@@ -2459,6 +2557,18 @@ ${formattedHistory}
                       } catch (err) {
                         console.error('Failed to send tool response:', err);
                       }
+                    }
+                    if (dontAskAgain) {
+                      localStorage.setItem('sweety_auto_allow_actions', 'true');
+                      if (currentUser) {
+                        try {
+                          const uRef = doc(db, 'users', currentUser.uid);
+                          await updateDoc(uRef, { autoAllowDeviceActions: true });
+                        } catch (err) {
+                          console.error('Failed to sync autoAllowDeviceActions:', err);
+                        }
+                      }
+                      setUserProfile((prev: any) => prev ? { ...prev, autoAllowDeviceActions: true } : { autoAllowDeviceActions: true });
                     }
                     addSystemLog(`[SECURITY] Access request ALLOWED for: ${pendingAction.name}`);
                     setPendingAction(null);
@@ -2914,6 +3024,10 @@ ${formattedHistory}
                 language={userProfile?.language || 'English'}
                 handleToggleCompleted={handleToggleCompleted}
                 toggleDrawer={() => setIsDrawerOpen(true)}
+                isAuthorizedDev={isAuthorizedDev}
+                isAdminViewActive={isAdminViewActive}
+                onToggleAdmin={() => setIsAdminViewActive(!isAdminViewActive)}
+                setDeviceUtility={setDeviceUtility}
               />
             </motion.div>
           )}
@@ -3843,8 +3957,12 @@ ${formattedHistory}
         onClose={() => setIsDrawerOpen(false)}
         onNavigate={(tab) => setActiveTab(tab as any)}
         onLogout={async () => { await signOut(auth); setIsDevUnlocked(false); }}
+        isAuthorizedDev={isAuthorizedDev}
+        isAdminViewActive={isAdminViewActive}
+        onToggleAdmin={() => setIsAdminViewActive(!isAdminViewActive)}
       />
       <CallManager />
+      <DeviceUtilityOverlay utility={deviceUtility} onClose={() => setDeviceUtility({ type: null })} />
       
       {selectedProfileUserId && (
         <UserProfileModal

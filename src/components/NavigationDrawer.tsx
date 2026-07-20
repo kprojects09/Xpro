@@ -1,15 +1,26 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { X, Home, User, ImageIcon, MessageSquare, Phone, Video, Users, Heart, Bell, Settings, Crown, Cpu, LogOut } from 'lucide-react';
+import { X, Home, User, ImageIcon, MessageSquare, Phone, Video, Users, Heart, Bell, Settings, Crown, Cpu, LogOut, Shield } from 'lucide-react';
 
 interface NavigationDrawerProps {
   isOpen: boolean;
   onClose: () => void;
   onNavigate: (tab: string) => void;
   onLogout: () => void;
+  isAuthorizedDev?: boolean;
+  isAdminViewActive?: boolean;
+  onToggleAdmin?: () => void;
 }
 
-export function NavigationDrawer({ isOpen, onClose, onNavigate, onLogout }: NavigationDrawerProps) {
+export function NavigationDrawer({ 
+  isOpen, 
+  onClose, 
+  onNavigate, 
+  onLogout,
+  isAuthorizedDev = false,
+  isAdminViewActive = false,
+  onToggleAdmin
+}: NavigationDrawerProps) {
   const menuItems = [
     { id: 'home', label: 'Home', icon: Home },
     { id: 'profile', label: 'My Profile', icon: User },
@@ -64,9 +75,19 @@ export function NavigationDrawer({ isOpen, onClose, onNavigate, onLogout }: Navi
               ))}
             </div>
 
+            {isAuthorizedDev && onToggleAdmin && (
+              <button 
+                onClick={() => { onToggleAdmin(); onClose(); }}
+                className="w-full flex items-center gap-4 px-4 py-3 rounded-2xl bg-pink-500/10 hover:bg-pink-500/20 text-pink-400 border border-pink-500/20 transition-all text-sm font-bold mt-4 cursor-pointer"
+              >
+                <Shield size={20} />
+                {isAdminViewActive ? "Switch to User Mode" : "Switch to Admin Mode"}
+              </button>
+            )}
+
             <button 
               onClick={onLogout}
-              className="w-full flex items-center gap-4 px-4 py-3 rounded-2xl hover:bg-rose-500/10 text-rose-400 transition-all text-sm font-bold mt-4"
+              className="w-full flex items-center gap-4 px-4 py-3 rounded-2xl hover:bg-rose-500/10 text-rose-400 transition-all text-sm font-bold mt-2"
             >
               <LogOut size={20} />
               Logout
