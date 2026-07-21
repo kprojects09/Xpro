@@ -4,7 +4,10 @@
   "requestFramePermissions": [
     "microphone",
     "camera",
-    "display-capture"
+    "display-capture",
+    "geolocation",
+    "notifications",
+    "vibrate"
   ],
   "majorCapabilities": [
     "Real-time Audio",

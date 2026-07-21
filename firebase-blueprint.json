@@ -76,53 +76,99 @@
       "description": "Secure admin-managed premium activation codes and usage counts.",
       "type": "object",
       "properties": {
-        "code": {
-          "type": "string",
-          "description": "Unique uppercase alphanumeric activation code"
-        },
-        "validityType": {
-          "type": "string",
-          "description": "Duration or date mapping for premium access"
-        },
-        "customExpiryDate": {
-          "type": "string",
-          "description": "Optional ISO custom expiry timestamp"
-        },
-        "isSingleUse": {
-          "type": "boolean",
-          "description": "Whether this code can only be redeemed once in total"
-        },
-        "maxActivations": {
-          "type": "integer",
-          "description": "Maximum allowed number of redemptions"
-        },
-        "activationCount": {
-          "type": "integer",
-          "description": "Number of times this code has been successfully redeemed"
-        },
-        "isEnabled": {
-          "type": "boolean",
-          "description": "Active state switch"
-        },
-        "isRevoked": {
-          "type": "boolean",
-          "description": "Revoked state flag"
-        },
-        "createdAt": {
-          "type": "string",
-          "format": "date-time",
-          "description": "Creation timestamp"
-        },
-        "createdBy": {
-          "type": "string",
-          "description": "Admin email who created the code"
-        },
-        "redeemedBy": {
-          "type": "array",
-          "description": "Array of users who have redeemed this code"
-        }
+        "code": { "type": "string", "description": "Unique uppercase alphanumeric activation code" },
+        "reward": { "type": "string", "description": "Reward description or identifier" },
+        "description": { "type": "string", "description": "Public description of the offer" },
+        "expiryDate": { "type": "string", "format": "date-time", "description": "Optional ISO expiry timestamp" },
+        "maxUses": { "type": "integer", "description": "Maximum allowed number of redemptions total" },
+        "perUserLimit": { "type": "integer", "description": "Maximum redemptions per individual user" },
+        "isPremium": { "type": "boolean", "description": "Whether this code grants premium status" },
+        "isActive": { "type": "boolean", "description": "Active state switch" },
+        "activationCount": { "type": "integer", "description": "Number of times this code has been successfully redeemed" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Creation timestamp" },
+        "createdBy": { "type": "string", "description": "Admin email who created the code" },
+        "redeemedBy": { "type": "array", "description": "Array of user IDs who have redeemed this code" }
       },
-      "required": ["code", "validityType", "isSingleUse", "maxActivations", "activationCount", "isEnabled", "isRevoked", "createdAt"]
+      "required": ["code", "reward", "maxUses", "isActive", "createdAt"]
+    },
+    "Announcement": {
+      "title": "Announcement",
+      "description": "Global announcements with rich media support",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "imageUrl": { "type": "string" },
+        "videoUrl": { "type": "string" },
+        "pdfUrl": { "type": "string" },
+        "linkUrl": { "type": "string" },
+        "buttonText": { "type": "string" },
+        "priority": { "type": "string", "enum": ["low", "medium", "high", "urgent"] },
+        "publishTime": { "type": "string", "format": "date-time" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["title", "description", "priority", "publishTime", "createdAt"]
+    },
+    "LinkPost": {
+      "title": "Link Post",
+      "description": "External resource links tracked for analytics",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "url": { "type": "string" },
+        "type": { "type": "string", "enum": ["youtube", "telegram", "whatsapp", "drive", "facebook", "other"] },
+        "clicksCount": { "type": "integer" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["title", "url", "type", "createdAt"]
+    },
+    "Banner": {
+      "title": "Promotional Banner",
+      "description": "Home screen promotional banners",
+      "type": "object",
+      "properties": {
+        "imageUrl": { "type": "string" },
+        "gradient": { "type": "string" },
+        "buttonText": { "type": "string" },
+        "animationType": { "type": "string" },
+        "deepLink": { "type": "string" },
+        "scheduleDate": { "type": "string", "format": "date-time" },
+        "isActive": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["imageUrl", "isActive", "createdAt"]
+    },
+    "AppUpdate": {
+      "title": "Application Update",
+      "description": "Metadata for in-app update checks",
+      "type": "object",
+      "properties": {
+        "versionName": { "type": "string" },
+        "versionCode": { "type": "integer" },
+        "releaseNotes": { "type": "string" },
+        "updateType": { "type": "string", "enum": ["optional", "force"] },
+        "apkUrl": { "type": "string" },
+        "fileSize": { "type": "integer" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["versionName", "versionCode", "updateType", "apkUrl", "createdAt"]
+    },
+    "NewsFeedPost": {
+      "title": "News Feed Post",
+      "description": "Admin or community news posts",
+      "type": "object",
+      "properties": {
+        "authorId": { "type": "string" },
+        "text": { "type": "string" },
+        "mediaUrls": { "type": "array", "items": { "type": "string" } },
+        "fileUrls": { "type": "array", "items": { "type": "string" } },
+        "links": { "type": "array", "items": { "type": "string" } },
+        "likes": { "type": "array", "items": { "type": "string" } },
+        "commentCount": { "type": "integer" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["authorId", "text", "createdAt"]
     },
     "Conversation": {
       "title": "Peer to Peer Chat Conversation",
@@ -276,6 +322,30 @@
     "/redeem_codes/{codeId}": {
       "schema": "RedeemCode",
       "description": "Admin-only management, secure backend-validated redeem codes."
+    },
+    "/announcements/{announcementId}": {
+      "schema": "Announcement",
+      "description": "Public announcements with rich media."
+    },
+    "/link_posts/{postId}": {
+      "schema": "LinkPost",
+      "description": "External resource links tracked for clicks."
+    },
+    "/banners/{bannerId}": {
+      "schema": "Banner",
+      "description": "Home screen promotional banners."
+    },
+    "/app_updates/{updateId}": {
+      "schema": "AppUpdate",
+      "description": "In-app update version metadata."
+    },
+    "/news_feed/{postId}": {
+      "schema": "NewsFeedPost",
+      "description": "Public news feed posts."
+    },
+    "/news_feed/{postId}/comments/{commentId}": {
+      "schema": "Message",
+      "description": "Comments on news feed posts."
     },
     "/logins/{loginId}": {
       "schema": "Login",

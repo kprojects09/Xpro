@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Phone, Video, X, Mic, MicOff, Speaker, Camera, CameraOff, PhoneOff, Signal, RefreshCw } from 'lucide-react';
+import { Phone, Video, X, Mic, MicOff, Speaker, Camera, CameraOff, PhoneOff, Signal, RefreshCw, AlertCircle } from 'lucide-react';
 import { db, auth } from '../firebase';
 import { doc, onSnapshot, collection, query, where } from 'firebase/firestore';
 import { updateCallStatus } from '../lib/firebaseHelpers';
@@ -16,6 +16,9 @@ export function CallManager() {
   const [localStream, setLocalStream] = useState<MediaStream | null>(null);
   const [remoteStream, setRemoteStream] = useState<MediaStream | null>(null);
   
+  const [peerInitKey, setPeerInitKey] = useState(0);
+  const [peerError, setPeerError] = useState<string | null>(null);
+  
   const peerInstance = useRef<Peer | null>(null);
   const callInstance = useRef<any>(null);
   const ringtoneRef = useRef<HTMLAudioElement | null>(null);
@@ -27,6 +30,9 @@ export function CallManager() {
   useEffect(() => {
     if (!auth.currentUser) return;
     
+    // Clear any previous error
+    setPeerError(null);
+
     // Initialize PeerJS
     const peer = new Peer(auth.currentUser.uid, {
       debug: 1,
@@ -34,6 +40,32 @@ export function CallManager() {
     
     peer.on('open', (id) => {
       console.log('PeerJS connected with ID:', id);
+      setPeerError(null);
+    });
+
+    peer.on('disconnected', () => {
+      console.log('PeerJS disconnected, attempting to reconnect...');
+      peer.reconnect();
+    });
+
+    peer.on('error', (err: any) => {
+      console.error('PeerJS error:', err);
+      if (err.type === 'unavailable-id') {
+        setPeerError('Connection ID is already in use. Retrying in 5 seconds...');
+        setTimeout(() => {
+          if (!peer.destroyed) {
+            peer.destroy();
+            setPeerInitKey(prev => prev + 1); // Trigger retry
+          }
+        }, 5000);
+      } else if (err.type === 'disconnected') {
+        peer.reconnect();
+      } else if (err.type === 'network') {
+        console.log('Network error, will try to reconnect in 3 seconds...');
+        setTimeout(() => {
+          if (!peer.destroyed) peer.reconnect();
+        }, 3000);
+      }
     });
 
     peer.on('call', (call) => {
@@ -45,14 +77,19 @@ export function CallManager() {
       call.on('close', () => {
         handleEnd();
       });
+      call.on('error', (err) => {
+        console.error('Call error:', err);
+        handleEnd();
+      });
     });
 
     peerInstance.current = peer;
 
     return () => {
       peer.destroy();
+      peerInstance.current = null;
     };
-  }, [auth.currentUser]);
+  }, [auth.currentUser, peerInitKey]);
 
   useEffect(() => {
     if (localVideoRef.current && localStream) {
@@ -213,6 +250,10 @@ export function CallManager() {
     call.on('close', () => {
       handleEnd();
     });
+    call.on('error', (err) => {
+      console.error('Call error:', err);
+      handleEnd();
+    });
   };
 
   const formatDuration = (seconds: number) => {
@@ -283,6 +324,12 @@ export function CallManager() {
         <div className="w-full max-w-2xl bg-slate-900 border border-white/10 rounded-3xl overflow-hidden shadow-2xl flex flex-col p-6">
           
           <div className="flex flex-col items-center mb-6">
+            {peerError && (
+              <div className="mb-4 p-3 bg-amber-500/10 border border-amber-500/20 rounded-xl flex items-center gap-3 text-amber-400 text-[10px] font-bold uppercase tracking-widest animate-pulse">
+                <AlertCircle size={14} />
+                {peerError}
+              </div>
+            )}
             {!remoteStream && (
               <div className="w-20 h-20 rounded-full bg-white/5 border border-white/10 flex items-center justify-center mb-4 relative">
                 {activeCall.type === 'video' ? <Video size={32} className="text-indigo-400" /> : <Phone size={32} className="text-indigo-400" />}

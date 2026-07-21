@@ -21,6 +21,7 @@ interface AIChatRoomProps {
   userProfile?: any;
   setShowPremiumModal?: (show: boolean) => void;
   setPremiumModalMessage?: (msg: string) => void;
+  onExecuteDeviceAction?: (args: any) => Promise<any>;
 }
 
 export function AIChatRoom({ 
@@ -31,11 +32,14 @@ export function AIChatRoom({
   currentUser,
   userProfile,
   setShowPremiumModal,
-  setPremiumModalMessage
+  setPremiumModalMessage,
+  onExecuteDeviceAction
 }: AIChatRoomProps) {
   const { appSettings } = useLiveSettings();
   
-  const defaultMessageText = appSettings?.welcomeMessage || `Hello! Ami ${appSettings?.aiAssistantName || 'Sweety'}, apnar personal AI Study Assistant. Apni ki ajke kono nirdishto subject e help chan? Math, Science, Programming ba onno jekono bishoy e question korte paren. Apnar PDF ba image thekeo proshno uttor jante paren.`;
+  const userName = userProfile?.fullName || userProfile?.displayName || userProfile?.username || currentUser?.displayName || '';
+  const greeting = userName ? `Hello, ${userName}!` : 'Hello!';
+  const defaultMessageText = appSettings?.welcomeMessage || `${greeting} Ami ${appSettings?.aiAssistantName || 'Sweety'}, apnar personal AI Study Assistant...`;
 
   // Default first message for fresh sessions
   const defaultMessage = useMemo(() => ({
@@ -400,7 +404,7 @@ export function AIChatRoom({
     }
 
     // AI responder loop
-    setTimeout(async () => {
+    (async () => {
       let aiResponse = '';
       const apiKey = appSettings.customGeminiApiKey?.trim();
       const maskedKey = apiKey ? `${apiKey.substring(0, 4)}...${apiKey.substring(apiKey.length - 4)}` : 'None';
@@ -408,9 +412,25 @@ export function AIChatRoom({
       const preferredLanguage = userProfile?.language || 'English';
 
       // Define standard instructions for professional AI Study Co-Pilot with automatic language rules
+      const detectedUserName = userProfile?.fullName || userProfile?.displayName || userProfile?.username || currentUser?.displayName || 'Scholar';
       const systemInstruction = `You are "${appSettings.appName}", a professional, sweet, and polite AI Teacher and Study Mentor.
+You are currently helping a student named "${detectedUserName}". Always address them politely and maintain a professional mentor-student relationship.
 You explain concepts step by step, help with homework, create study plans, and motivate students academically.
 NEVER flirt. NEVER use romantic language. Focus only on education, productivity, and learning.
+
+RESPONSE STYLE: Be EXTREMELY fast, brief, snappy, and concise. Keep your responses short (1 to 2 short sentences maximum, under 15-20 words). Never use long sentences unless explicitly asked for a detailed explanation. Respond instantly like a real, quick conversation.
+
+=== USER PROFILE ===
+- User Name: ${detectedUserName}
+- User Interests: ${userProfile?.interest || 'General Studies'}
+- User Goals: ${userProfile?.goal || 'Academic Success'}
+
+=== DEVICE ACTIONS & UTILITIES ===
+- You have the special capability to execute device actions like calling a contact, sending an SMS, or opening an app (e.g., WhatsApp, Calculator, YouTube).
+- You MUST ONLY execute these actions if the user explicitly and directly asks you to do so in their message. 
+- To execute an action, call the 'executeDeviceAction' tool.
+- Example: If the user says "Open WhatsApp", you call executeDeviceAction(action='open_app', appName='whatsapp').
+- After calling the tool, always confirm to the user that you've initiated the action in a polite and helpful way.
 
 === LANGUAGE RULES ===
 - The user's preferred language setting in Settings is: "${preferredLanguage}". Always respect this priority!
@@ -423,6 +443,30 @@ NEVER flirt. NEVER use romantic language. Focus only on education, productivity,
   * NEVER reply in English or Romanized Hindi.
 - If the user writes in English, reply in natural, supportive English.
 - Always maintain the same language throughout the conversation unless the user explicitly switches it or asks for a translation.`;
+
+      const tools: any[] = [
+        {
+          functionDeclarations: [
+            {
+              name: 'executeDeviceAction',
+              description: 'Execute native device actions like phone call, SMS message dispatch, or opening external applications.',
+              parameters: {
+                type: 'OBJECT',
+                properties: {
+                  action: { type: 'STRING', enum: ['call', 'message', 'open_app', 'screen_lock', 'toggle_setting'], description: 'The type of system command.' },
+                  contactName: { type: 'STRING', description: 'Optional name of the contact.' },
+                  phoneNumber: { type: 'STRING', description: 'Optional phone number.' },
+                  messageContent: { type: 'STRING', description: 'Optional content of the message.' },
+                  appName: { type: 'STRING', enum: ['calculator', 'terminal', 'file_browser', 'system_monitor', 'camera', 'whatsapp', 'telegram', 'chrome', 'youtube', 'gallery', 'clock', 'flashlight', 'google_search', 'alarm', 'reminder', 'calendar', 'media_playback', 'battery', 'storage', 'internet_status'], description: 'App to open.' },
+                  settingName: { type: 'STRING', enum: ['wifi', 'bluetooth', 'cellular', 'hotspot', 'gps', 'airplane_mode', 'location', 'sound', 'volume', 'flashlight'], description: 'Hardware setting.' },
+                  settingValue: { type: 'BOOLEAN', description: 'Boolean state.' }
+                },
+                required: ['action']
+              }
+            }
+          ]
+        }
+      ];
 
       const contents = messagesWithUser.map(msg => {
         const parts: any[] = [{ text: msg.text }];
@@ -461,117 +505,108 @@ NEVER flirt. NEVER use romantic language. Focus only on education, productivity,
         });
       };
 
-      if (apiKey) {
-        try {
-          const ai = new GoogleGenAI({ apiKey });
-          const responseStream = await ai.models.generateContentStream({
-            model: 'gemini-3.5-flash',
-            contents,
-            config: {
-              systemInstruction
-            }
-          });
-          
-          for await (const chunk of responseStream) {
-            if (chunk.text) {
-              updateAssistantMessage(chunk.text);
-            }
-          }
-        } catch (error: any) {
-          console.error("Gemini API Error in Chat Screen:", error);
-          const isRateLimited = error?.status === 429 || error?.message?.includes('429') || error?.message?.includes('RESOURCE_EXHAUSTED') || error?.message?.includes('quota');
-          if (isRateLimited) {
-            updateAssistantMessage("AI service is temporarily unavailable. Please try again later.");
-          } else {
-            updateAssistantMessage(`Gemini API Error: ${error?.message || 'Unauthorized API Key'}`);
-          }
+      // Call our secure, server-side API proxy route for all chat requests
+      try {
+        const response = await fetch(getApiUrl('/api/chat'), {
+          method: 'POST',
+          headers: { 
+            'Content-Type': 'application/json',
+            'Accept': 'text/event-stream'
+          },
+          body: JSON.stringify({ contents, systemInstruction, tools, customApiKey: appSettings?.customGeminiApiKey })
+        });
+
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
         }
-      } else {
-        // Call our secure, server-side API proxy route!
-        try {
-          const response = await fetch(getApiUrl('/api/chat'), {
-            method: 'POST',
-            headers: { 
-              'Content-Type': 'application/json',
-              'Accept': 'text/event-stream'
-            },
-            body: JSON.stringify({ contents, systemInstruction, customApiKey: appSettings?.customGeminiApiKey })
-          });
+        
+        const contentType = response.headers.get('content-type');
+        if (contentType && contentType.includes('text/html')) {
+           throw new Error('Backend not reachable (received HTML). On Android, you must provide a custom Gemini API Key in Settings or host the backend.');
+        }
+        
+        let receivedValidData = false;
 
-          if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
+        if (contentType && contentType.includes('application/json')) {
+          const data = await response.json();
+          if (data.functionCalls && Array.isArray(data.functionCalls) && onExecuteDeviceAction) {
+             for (const call of data.functionCalls) {
+               if (call.name === 'executeDeviceAction') {
+                  await onExecuteDeviceAction(call.args);
+                  updateAssistantMessage(`\n\n[System: Action initiated]`);
+               }
+             }
           }
-          
-          const contentType = response.headers.get('content-type');
-          if (contentType && contentType.includes('text/html')) {
-             throw new Error('Backend not reachable (received HTML). On Android, you must provide a custom Gemini API Key in Settings or host the backend.');
+          if (data.reply) {
+            updateAssistantMessage(data.reply);
+            receivedValidData = true;
+          } else if (data.error) {
+            updateAssistantMessage(data.error === "AI service is temporarily unavailable. Please try again later." ? data.error : `Server error: ${data.error}`);
+            receivedValidData = true;
           }
-          
-          let receivedValidData = false;
+        } else if (response.body) {
+          const reader = response.body.getReader();
+          const decoder = new TextDecoder("utf-8");
+          let done = false;
+          let buffer = "";
 
-          if (contentType && contentType.includes('application/json')) {
-            const data = await response.json();
-            if (data.reply) {
-              updateAssistantMessage(data.reply);
-              receivedValidData = true;
-            } else if (data.error) {
-              updateAssistantMessage(data.error === "AI service is temporarily unavailable. Please try again later." ? data.error : `Server error: ${data.error}`);
-              receivedValidData = true;
-            }
-          } else if (response.body) {
-            const reader = response.body.getReader();
-            const decoder = new TextDecoder("utf-8");
-            let done = false;
-            let buffer = "";
-
-            while (!done) {
-              const { value, done: readerDone } = await reader.read();
-              done = readerDone;
-              if (value) {
-                buffer += decoder.decode(value, { stream: true });
-                const lines = buffer.split('\n');
-                buffer = lines.pop() || "";
-                for (const line of lines) {
-                  if (line.startsWith('data: ')) {
-                    const dataStr = line.replace('data: ', '').trim();
-                    if (dataStr === '[DONE]') {
-                      done = true;
-                      break;
-                    }
-                    if (dataStr) {
-                      try {
-                        const parsed = JSON.parse(dataStr);
-                        if (parsed.text) {
-                          updateAssistantMessage(parsed.text);
-                        } else if (parsed.error) {
-                          updateAssistantMessage(parsed.error === "AI service is temporarily unavailable. Please try again later." ? parsed.error : `Server error: ${parsed.error}`);
-                        }
-                      } catch (e) {
-                        console.error("Error parsing SSE data", e, dataStr);
+          while (!done) {
+            const { value, done: readerDone } = await reader.read();
+            done = readerDone;
+            if (value) {
+              buffer += decoder.decode(value, { stream: true });
+              const lines = buffer.split('\n');
+              buffer = lines.pop() || "";
+              for (const line of lines) {
+                if (line.startsWith('data: ')) {
+                  const dataStr = line.replace('data: ', '').trim();
+                  if (dataStr === '[DONE]') {
+                    done = true;
+                    break;
+                  }
+                  if (dataStr) {
+                    try {
+                      const parsed = JSON.parse(dataStr);
+                      if (parsed.functionCalls && Array.isArray(parsed.functionCalls) && onExecuteDeviceAction) {
+                         for (const call of parsed.functionCalls) {
+                           if (call.name === 'executeDeviceAction') {
+                              await onExecuteDeviceAction(call.args);
+                              updateAssistantMessage(`\n\n[System: Action initiated]`);
+                           }
+                         }
                       }
+                      if (parsed.text) {
+                        updateAssistantMessage(parsed.text);
+                        receivedValidData = true;
+                      } else if (parsed.error) {
+                        updateAssistantMessage(parsed.error === "AI service is temporarily unavailable. Please try again later." ? parsed.error : `Server error: ${parsed.error}`);
+                      }
+                    } catch (e) {
+                      console.error("Error parsing SSE data", e, dataStr);
                     }
                   }
                 }
               }
             }
           }
-        } catch (error: any) {
-          console.error("Server API Chat Error:", error);
-          // High-Quality Study Assistant simulated fallback responder
-          const lower = userText.toLowerCase();
-          if (lower.includes('physics') || lower.includes('force') || lower.includes('gravity')) {
-            updateAssistantMessage("Physics niye golpo kora amar khub pochhondo! Newtonian Mechanics ba Einsteinian relativity-r kon topics ta discuss korbo bolo? Coulomb force formula holo F = k * (q1*q2)/r^2. Eitar math optimization solve korte hobe?");
-          } else if (lower.includes('math') || lower.includes('calculus') || lower.includes('derivative') || lower.includes('integration')) {
-            updateAssistantMessage("Calculus limits and derivatives are very simple once you get the intuition! sin(x) er derivative holo cos(x). Kono critical integration ba polynomial derivative expression solver dorkar hole amake type kore pathao, ami step-by-step bujhiye debo!");
-          } else if (lower.includes('pdf') || lower.includes('summary') || attachment?.type === 'pdf') {
-            updateAssistantMessage(`📚 PDF Summary: **"${attachment?.name || 'Calculus Chapter 3'} Review"**\n\n- **Core Theme:** Introduction to Differential equations & tangent lines.\n- **Key Equations:** dy/dx = lim(h->0) [f(x+h) - f(x)] / h\n- **Action Items:** Master the Chain Rule and product rule for the upcoming midterms!`);
-          } else if (lower.includes('bengali') || lower.includes('bengla') || lower.includes('bhasha')) {
-            updateAssistantMessage("Ami to Bengali khub bhalo bhabe bujhi! Settings change kore nite paro ba ekhane chat-eo kotha bolte paro. Tomar ajke porar topic-ta amake bolo.");
-          } else {
-            updateAssistantMessage(`Bolo! Ami ${appSettings.aiAssistantName || 'Sweety'}, tomar premium study co-pilot. Tomar equations query, coding problems, code bugs, naki calculus logic help korbo bolo? Ami instantly analyze kore complete logic prepare korchi!`);
-          }
+        }
+      } catch (error: any) {
+        console.error("Server API Chat Error:", error);
+        // High-Quality Study Assistant simulated fallback responder
+        const lower = userText.toLowerCase();
+        if (lower.includes('physics') || lower.includes('force') || lower.includes('gravity')) {
+          updateAssistantMessage("Physics niye golpo kora amar khub pochhondo! Newtonian Mechanics ba Einsteinian relativity-r kon topics ta discuss korbo bolo? Coulomb force formula holo F = k * (q1*q2)/r^2. Eitar math optimization solve korte hobe?");
+        } else if (lower.includes('math') || lower.includes('calculus') || lower.includes('derivative') || lower.includes('integration')) {
+          updateAssistantMessage("Calculus limits and derivatives are very simple once you get the intuition! sin(x) er derivative holo cos(x). Kono critical integration ba polynomial derivative expression solver dorkar hole amake type kore pathao, ami step-by-step bujhiye debo!");
+        } else if (lower.includes('pdf') || lower.includes('summary') || attachment?.type === 'pdf') {
+          updateAssistantMessage(`📚 PDF Summary: **"${attachment?.name || 'Calculus Chapter 3'} Review"**\n\n- **Core Theme:** Introduction to Differential equations & tangent lines.\n- **Key Equations:** dy/dx = lim(h->0) [f(x+h) - f(x)] / h\n- **Action Items:** Master the Chain Rule and product rule for the upcoming midterms!`);
+        } else if (lower.includes('bengali') || lower.includes('bengla') || lower.includes('bhasha')) {
+          updateAssistantMessage("Ami to Bengali khub bhalo bhabe bujhi! Settings change kore nite paro ba ekhane chat-eo kotha bolte paro. Tomar ajke porar topic-ta amake bolo.");
+        } else {
+          updateAssistantMessage(`Bolo! Ami ${appSettings.aiAssistantName || 'Sweety'}, tomar premium study co-pilot. Tomar equations query, coding problems, code bugs, naki calculus logic help korbo bolo? Ami instantly analyze kore complete logic prepare korchi!`);
         }
       }
+
 
       setMessages(prev => {
         const finalMessages = prev;
@@ -598,7 +633,7 @@ NEVER flirt. NEVER use romantic language. Focus only on education, productivity,
           console.error("Failed to update daily text message limit:", err);
         }
       }
-    }, 1000);
+    })();
   };
 
   

@@ -150,6 +150,30 @@ export function DeviceUtilityOverlay({ utility, onClose }: DeviceUtilityOverlayP
     return () => clearInterval(interval);
   }, []);
 
+  // Auto-redirect for WhatsApp and Telegram - making it even more direct
+  useEffect(() => {
+    if (utility && (utility.type === 'whatsapp' || utility.type === 'telegram') && searchQuery) {
+      const redirectTimer = setTimeout(() => {
+        const baseUrl = utility.type === 'whatsapp' 
+          ? `https://wa.me/?text=${encodeURIComponent(searchQuery)}`
+          : `https://t.me/share/url?url=${encodeURIComponent(window.location.origin)}&text=${encodeURIComponent(searchQuery)}`;
+        
+        // Use location.assign for a more direct navigation which is less likely to be blocked than a popup
+        window.location.assign(baseUrl);
+        
+        // Small delay before closing to ensure the page doesn't unmount before the redirect starts
+        setTimeout(onClose, 800);
+      }, 300); // Faster redirect
+      return () => clearTimeout(redirectTimer);
+    }
+  }, [utility?.type, searchQuery, onClose]);
+
+  useEffect(() => {
+    if (utility?.args?.messageContent || utility?.args?.query) {
+      setSearchQuery(utility.args.messageContent || utility.args.query || '');
+    }
+  }, [utility]);
+
   // Timer for Call duration
   useEffect(() => {
     if (utility.type === 'call' && callActive) {
@@ -1046,33 +1070,57 @@ export function DeviceUtilityOverlay({ utility, onClose }: DeviceUtilityOverlayP
             {/* 12. WHATSAPP & TELEGRAM DISPATCH INTENTS */}
             {['whatsapp', 'telegram'].includes(utility.type) && (
               <div className="flex flex-col items-center text-center py-6 gap-4 font-sans">
-                <div className="w-20 h-20 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 flex items-center justify-center mb-2">
-                  <MessageSquare size={38} className="animate-pulse" />
+                <div className="relative">
+                  <div className="w-20 h-20 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 flex items-center justify-center mb-2">
+                    <MessageSquare size={38} className="animate-pulse" />
+                  </div>
+                  <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-emerald-500 rounded-full border-2 border-[#0a0a0c] flex items-center justify-center">
+                    <RefreshCw size={12} className="text-white animate-spin" />
+                  </div>
                 </div>
                 
-                <h3 className="text-sm font-black text-white capitalize">{utility.type} External Portal</h3>
+                <div className="space-y-1">
+                  <h3 className="text-sm font-black text-white capitalize">{utility.type} External Portal</h3>
+                  <div className="flex items-center justify-center gap-2 text-[10px] text-emerald-400 font-bold uppercase tracking-widest">
+                    <span className="relative flex h-2 w-2">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                      <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                    </span>
+                    Redirecting to App...
+                  </div>
+                </div>
+
                 <p className="text-xs text-gray-400 max-w-sm leading-relaxed px-4">
-                  Sweety wants to route your command message to {utility.type === 'whatsapp' ? 'WhatsApp' : 'Telegram'} chat interface.
+                  Sweety is routing your command message to {utility.type === 'whatsapp' ? 'WhatsApp' : 'Telegram'} chat interface. Please wait a moment.
                 </p>
 
                 {searchQuery && (
                   <div className="p-4 bg-white/5 border border-white/5 rounded-2xl text-left w-full mt-2">
-                    <div className="text-[10px] text-gray-400 uppercase tracking-wider mb-1.5 font-bold">Draft Text Message</div>
-                    <div className="text-xs text-white leading-relaxed">{searchQuery}</div>
+                    <div className="text-[10px] text-gray-400 uppercase tracking-wider mb-1.5 font-bold">Message Content</div>
+                    <div className="text-xs text-white leading-relaxed line-clamp-3 italic opacity-70">"{searchQuery}"</div>
                   </div>
                 )}
 
-                <button
-                  onClick={() => {
-                    const baseUrl = utility.type === 'whatsapp' 
-                      ? `https://wa.me/?text=${encodeURIComponent(searchQuery)}`
-                      : `https://t.me/share/url?url=${encodeURIComponent(window.location.origin)}&text=${encodeURIComponent(searchQuery)}`;
-                    window.open(baseUrl, '_blank');
-                  }}
-                  className="w-full mt-4 py-3.5 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white rounded-xl font-bold text-sm transition-all flex items-center justify-center gap-2"
-                >
-                  Confirm Deep Link Intent <ExternalLink size={14} />
-                </button>
+                <div className="w-full mt-4 flex flex-col gap-2">
+                  <button
+                    onClick={() => {
+                      const baseUrl = utility.type === 'whatsapp' 
+                        ? `https://wa.me/?text=${encodeURIComponent(searchQuery)}`
+                        : `https://t.me/share/url?url=${encodeURIComponent(window.location.origin)}&text=${encodeURIComponent(searchQuery)}`;
+                      window.open(baseUrl, '_blank');
+                      onClose();
+                    }}
+                    className="w-full py-3.5 bg-emerald-500 text-white rounded-xl font-bold text-sm transition-all flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/20"
+                  >
+                    Open Manually <ExternalLink size={14} />
+                  </button>
+                  <button 
+                    onClick={onClose}
+                    className="w-full py-2.5 bg-white/5 hover:bg-white/10 text-gray-400 rounded-xl font-bold text-[11px] transition-all"
+                  >
+                    Cancel Dispatch
+                  </button>
+                </div>
               </div>
             )}
 

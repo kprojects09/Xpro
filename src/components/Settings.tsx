@@ -3,7 +3,8 @@ import { motion } from 'motion/react';
 import { 
   User, Shield, Key, Eye, EyeOff, Sliders, Volume2, AppWindow, 
   Info, ExternalLink, Moon, Sparkles, BookOpen, Clock, Flame, LogOut, Check,
-  School, Award, Globe, MapPin, CheckCircle, Lock, Ban, UserMinus
+  School, Award, Globe, MapPin, CheckCircle, Lock, Ban, UserMinus,
+  Mic, Camera, Bell, Image as ImageIcon, HardDrive, Phone, Users, MessageSquare, Bluetooth, Activity, Wifi, Zap
 } from 'lucide-react';
 import { db } from '../firebase';
 import { syncUserProfile } from '../lib/profileSync';
@@ -30,6 +31,39 @@ interface UserProfileSettingsProps {
   isAdmin: boolean;
   onNavigateHome?: () => void;
 }
+
+const SETTINGS_PERMISSIONS = [
+  { id: 'INTERNET', name: 'INTERNET', description: 'Enables real-time cloud data sync & Gemini Brain APIs', icon: Globe, category: 'core' },
+  { id: 'ACCESS_NETWORK_STATE', name: 'ACCESS_NETWORK_STATE', description: 'Monitors internet connection health & offline queues', icon: Wifi, category: 'core' },
+  { id: 'POST_NOTIFICATIONS', name: 'POST_NOTIFICATIONS', description: 'Sends study reminders, routine alerts, and live messages', icon: Bell, category: 'core' },
+  { id: 'VIBRATE', name: 'VIBRATE', description: 'Provides tactile haptic feedback during voice and UI actions', icon: Zap, category: 'core' },
+  { id: 'WAKE_LOCK', name: 'WAKE_LOCK', description: 'Keeps screen awake during active hands-free conversations', icon: Lock, category: 'core' },
+
+  // Communication
+  { id: 'RECORD_AUDIO', name: 'RECORD_AUDIO', description: 'Captures voice queries for Speech To Text & Wake Word detection', icon: Mic, category: 'communication' },
+  { id: 'CALL_PHONE', name: 'CALL_PHONE', description: 'Allows placing phone calls using voice AI commands', icon: Phone, category: 'communication', restricted: true },
+  { id: 'READ_CONTACTS', name: 'READ_CONTACTS', description: 'Identifies favourite contacts for quick voice call & messaging', icon: Users, category: 'communication' },
+  { id: 'WRITE_CONTACTS', name: 'WRITE_CONTACTS', description: 'Saves new contacts directly via natural voice instructions', icon: Users, category: 'communication' },
+  { id: 'READ_PHONE_NUMBERS', name: 'READ_PHONE_NUMBERS', description: 'Reads active phone configuration for account profile verification', icon: Phone, category: 'communication', restricted: true },
+  { id: 'SEND_SMS', name: 'SEND_SMS', description: 'Sends text messages hands-free using Gemini voice logic', icon: MessageSquare, category: 'communication', restricted: true },
+  { id: 'READ_SMS', name: 'READ_SMS', description: 'Reads incoming study updates, task lists, and verification text', icon: MessageSquare, category: 'communication', restricted: true },
+  { id: 'RECEIVE_SMS', name: 'RECEIVE_SMS', description: 'Intercepts incoming messages to prompt you hands-free via AI', icon: MessageSquare, category: 'communication', restricted: true },
+
+  // Media / Storage
+  { id: 'CAMERA', name: 'CAMERA', description: 'Launches viewfinder for scanning books, study notes, or story images', icon: Camera, category: 'media' },
+  { id: 'READ_MEDIA_IMAGES', name: 'READ_MEDIA_IMAGES', description: 'Displays saved photos in custom gallery and message attachments', icon: ImageIcon, category: 'media' },
+  { id: 'READ_MEDIA_VIDEO', name: 'READ_MEDIA_VIDEO', description: 'Loads reference school and course videos directly in learning hub', icon: ImageIcon, category: 'media' },
+  { id: 'READ_MEDIA_AUDIO', name: 'READ_MEDIA_AUDIO', description: 'Reads and manages vocal recordings and study podcasts', icon: ImageIcon, category: 'media' },
+  { id: 'READ_EXTERNAL_STORAGE', name: 'READ_EXTERNAL_STORAGE', description: 'Reads PDF books, task files, and local documents securely', icon: HardDrive, category: 'media' },
+
+  // Hardware Settings
+  { id: 'ACCESS_FINE_LOCATION', name: 'ACCESS_FINE_LOCATION', description: 'Determines pinpoint GPS location for maps and route navigation', icon: MapPin, category: 'hardware' },
+  { id: 'ACCESS_COARSE_LOCATION', name: 'ACCESS_COARSE_LOCATION', description: 'Loads localized weather, language presets, and region info', icon: MapPin, category: 'hardware' },
+  { id: 'BLUETOOTH_CONNECT', name: 'BLUETOOTH_CONNECT', description: 'Interfaces with wireless headset/speaker for Text To Speech audio', icon: Bluetooth, category: 'hardware' },
+  { id: 'BLUETOOTH_SCAN', name: 'BLUETOOTH_SCAN', description: 'Discovers bluetooth earphones, wearables, or smart peripherals', icon: Bluetooth, category: 'hardware' },
+  { id: 'SCHEDULE_EXACT_ALARM', name: 'SCHEDULE_EXACT_ALARM', description: 'Triggers precise alarms and vibration updates for class schedules', icon: Clock, category: 'hardware' },
+  { id: 'FOREGROUND_SERVICE', name: 'FOREGROUND_SERVICE', description: 'Runs a high-priority service to ensure always-listening wake word', icon: Activity, category: 'system' }
+];
 
 export function Settings({
   currentUser,
@@ -119,6 +153,90 @@ export function Settings({
   const [autoAllowActions, setAutoAllowActions] = useState(() => {
     return userProfile?.autoAllowDeviceActions === true || localStorage.getItem('sweety_auto_allow_actions') === 'true';
   });
+
+  const [permissionsStatus, setPermissionsStatus] = useState<Record<string, boolean>>(() => {
+    if (userProfile?.permissionsStatus) {
+      return userProfile.permissionsStatus;
+    }
+    const initial: Record<string, boolean> = {};
+    const alwaysGranted = ['INTERNET', 'ACCESS_NETWORK_STATE', 'VIBRATE', 'WAKE_LOCK'];
+    alwaysGranted.forEach(id => {
+      initial[id] = true;
+    });
+    const hasGrantedAll = localStorage.getItem('sweety_permissions_granted') === 'true';
+    if (hasGrantedAll) {
+      const allIds = [
+        'INTERNET', 'ACCESS_NETWORK_STATE', 'POST_NOTIFICATIONS', 'VIBRATE', 'WAKE_LOCK',
+        'RECORD_AUDIO', 'CALL_PHONE', 'READ_CONTACTS', 'WRITE_CONTACTS', 'READ_PHONE_NUMBERS',
+        'SEND_SMS', 'READ_SMS', 'RECEIVE_SMS', 'CAMERA', 'READ_MEDIA_IMAGES', 'READ_MEDIA_VIDEO',
+        'READ_MEDIA_AUDIO', 'READ_EXTERNAL_STORAGE', 'ACCESS_FINE_LOCATION', 'ACCESS_COARSE_LOCATION',
+        'BLUETOOTH_CONNECT', 'BLUETOOTH_SCAN', 'SCHEDULE_EXACT_ALARM', 'FOREGROUND_SERVICE'
+      ];
+      allIds.forEach(id => {
+        initial[id] = true;
+      });
+    }
+    return initial;
+  });
+
+  useEffect(() => {
+    if (userProfile?.permissionsStatus) {
+      setPermissionsStatus(userProfile.permissionsStatus);
+    }
+  }, [userProfile]);
+
+  const handleTogglePermission = async (p: any) => {
+    // Determine type for permissionManager
+    let type: 'microphone' | 'camera' | 'notifications' | 'media' | 'storage' | null = null;
+    if (p.id === 'RECORD_AUDIO') type = 'microphone';
+    else if (p.id === 'CAMERA') type = 'camera';
+    else if (p.id === 'POST_NOTIFICATIONS') type = 'notifications';
+    else if (p.id === 'READ_EXTERNAL_STORAGE') type = 'storage';
+    else if (p.id.startsWith('READ_MEDIA_')) type = 'media';
+
+    let result = true;
+    if (type) {
+      result = await permissionManager.requestPermission(
+        type,
+        p.name + " Permission",
+        `Sweety is requesting access to your device ${p.name.toLowerCase()} capability.`
+      );
+    }
+
+    const updated = {
+      ...permissionsStatus,
+      [p.id]: result
+    };
+    
+    if (result) {
+      if (p.id === 'READ_EXTERNAL_STORAGE') {
+        updated['READ_MEDIA_VIDEO'] = true;
+        updated['READ_MEDIA_AUDIO'] = true;
+      }
+      if (p.id === 'RECORD_AUDIO') {
+        updated['FOREGROUND_SERVICE'] = true;
+      }
+    }
+
+    setPermissionsStatus(updated);
+    localStorage.setItem('sweety_permissions_granted', 'true');
+    if (currentUser) {
+      try {
+        const uRef = doc(db, 'users', currentUser.uid);
+        await updateDoc(uRef, {
+          permissionsStatus: updated,
+          permissionsGranted: true
+        });
+      } catch (err) {
+        console.error('Failed to sync permissionsStatus:', err);
+      }
+    }
+    onUpdateProfile({
+      ...userProfile,
+      permissionsStatus: updated,
+      permissionsGranted: true
+    });
+  };
 
   // Fetch blocked users details
   useEffect(() => {
@@ -848,42 +966,105 @@ export function Settings({
               Check, toggle, or prompt native Android capability APIs. All standard operations are permitted post initial consent.
             </p>
             
-            <div className="bg-black/20 p-3 rounded-2xl border border-white/5 space-y-2 text-left">
-              <div className="flex items-center justify-between text-xs font-bold text-white">
-                <span>Active Status Check</span>
-                <span className="text-emerald-400 font-extrabold">24/24 Permissions Configured</span>
-              </div>
-              <div className="w-full bg-white/5 h-1.5 rounded-full overflow-hidden">
-                <div className="bg-gradient-to-r from-pink-500 to-emerald-400 h-full w-[100%]" />
-              </div>
-            </div>
+            {(() => {
+              const totalGranted = SETTINGS_PERMISSIONS.filter(p => !!permissionsStatus[p.id]).length;
+              const progressPercent = Math.round((totalGranted / SETTINGS_PERMISSIONS.length) * 100);
+              
+              return (
+                <>
+                  <div className="bg-black/20 p-3 rounded-2xl border border-white/5 space-y-2 text-left">
+                    <div className="flex items-center justify-between text-xs font-bold text-white">
+                      <span>Active Status Check</span>
+                      <span className="text-emerald-400 font-extrabold">{totalGranted}/24 Permissions Configured</span>
+                    </div>
+                    <div className="w-full bg-white/5 h-1.5 rounded-full overflow-hidden">
+                      <div 
+                        className="bg-gradient-to-r from-pink-500 to-emerald-400 h-full transition-all duration-300" 
+                        style={{ width: `${progressPercent}%` }} 
+                      />
+                    </div>
+                    {totalGranted < 24 && (
+                      <button
+                        onClick={async (e) => {
+                          e.stopPropagation();
+                          const updated: Record<string, boolean> = {};
+                          SETTINGS_PERMISSIONS.forEach(p => {
+                            updated[p.id] = true;
+                          });
+                          setPermissionsStatus(updated);
+                          localStorage.setItem('sweety_permissions_granted', 'true');
+                          if (currentUser) {
+                            try {
+                              const uRef = doc(db, 'users', currentUser.uid);
+                              await updateDoc(uRef, {
+                                permissionsStatus: updated,
+                                permissionsGranted: true
+                              });
+                            } catch (err) {
+                              console.error('Failed to sync permissionsStatus:', err);
+                            }
+                          }
+                          onUpdateProfile({
+                            ...userProfile,
+                            permissionsStatus: updated,
+                            permissionsGranted: true
+                          });
+                        }}
+                        className="w-full mt-2 py-2 bg-gradient-to-r from-emerald-500 to-indigo-600 hover:from-emerald-400 hover:to-indigo-500 text-white rounded-xl font-bold text-[10px] uppercase tracking-wider transition-all active:scale-[0.98] flex items-center justify-center gap-1.5 shadow-lg shadow-emerald-500/10 cursor-pointer"
+                      >
+                        <Shield size={12} className="animate-pulse" />
+                        <span>Grant All 24 Android Permissions</span>
+                      </button>
+                    )}
+                  </div>
 
-            <div className="grid grid-cols-2 gap-2 text-[10px] text-left">
-              <div className="p-2.5 bg-white/5 rounded-xl border border-white/5 flex items-center justify-between">
-                <span className="text-gray-400 font-mono">RECORD_AUDIO</span>
-                <span className="text-emerald-400 font-bold uppercase">Active</span>
-              </div>
-              <div className="p-2.5 bg-white/5 rounded-xl border border-white/5 flex items-center justify-between">
-                <span className="text-gray-400 font-mono">CAMERA</span>
-                <span className="text-emerald-400 font-bold uppercase">Active</span>
-              </div>
-              <div className="p-2.5 bg-white/5 rounded-xl border border-white/5 flex items-center justify-between">
-                <span className="text-gray-400 font-mono">READ_CONTACTS</span>
-                <span className="text-emerald-400 font-bold uppercase">Active</span>
-              </div>
-              <div className="p-2.5 bg-white/5 rounded-xl border border-white/5 flex items-center justify-between">
-                <span className="text-gray-400 font-mono">SEND_SMS</span>
-                <span className="text-emerald-400 font-bold uppercase">Active</span>
-              </div>
-              <div className="p-2.5 bg-white/5 rounded-xl border border-white/5 flex items-center justify-between">
-                <span className="text-gray-400 font-mono">ACCESS_LOCATION</span>
-                <span className="text-emerald-400 font-bold uppercase">Active</span>
-              </div>
-              <div className="p-2.5 bg-white/5 rounded-xl border border-white/5 flex items-center justify-between">
-                <span className="text-emerald-400 font-bold uppercase">ALL INTEGRATED</span>
-                <span className="text-emerald-400 font-black">✓</span>
-              </div>
-            </div>
+                  <div className="text-[10px] text-gray-400 text-left font-bold uppercase tracking-wider mb-1 mt-3">
+                    Manage Android Manifest Permissions
+                  </div>
+
+                  <div className="max-h-[280px] overflow-y-auto space-y-2 pr-1 custom-scrollbar text-left">
+                    {SETTINGS_PERMISSIONS.map(p => {
+                      const Icon = p.icon;
+                      const isGranted = !!permissionsStatus[p.id];
+                      const isAuto = ['INTERNET', 'ACCESS_NETWORK_STATE', 'VIBRATE', 'WAKE_LOCK'].includes(p.id);
+
+                      return (
+                        <div 
+                          key={p.id}
+                          onClick={() => {
+                            if (!isAuto) handleTogglePermission(p);
+                          }}
+                          className={`flex items-start gap-2.5 p-2.5 rounded-xl border transition-all cursor-pointer select-none ${isGranted ? 'bg-emerald-500/5 border-emerald-500/10' : 'bg-black/20 border-white/5 hover:border-white/10'}`}
+                        >
+                          <div className={`p-1.5 rounded-lg shrink-0 ${isGranted ? 'bg-emerald-500/10 text-emerald-400' : 'bg-white/5 text-gray-400'}`}>
+                            <Icon size={14} />
+                          </div>
+                          
+                          <div className="flex-1 min-w-0 text-left space-y-0.5">
+                            <div className="flex flex-wrap items-center gap-1">
+                              <span className="text-[10px] font-bold text-white font-mono break-all leading-tight">{p.id}</span>
+                              {isAuto && (
+                                <span className="text-[7px] bg-indigo-500/20 text-indigo-300 px-1 py-0.2 rounded font-black uppercase">AUTO</span>
+                              )}
+                              {p.restricted && (
+                                <span className="text-[7px] bg-pink-500/20 text-pink-300 px-1 py-0.2 rounded font-black uppercase">RESTRICTED</span>
+                              )}
+                            </div>
+                            <p className="text-[9px] text-gray-400 leading-normal line-clamp-1">{p.description}</p>
+                          </div>
+
+                          <div className="flex items-center self-center shrink-0">
+                            <div className={`px-2 py-0.5 rounded-full text-[8px] font-extrabold uppercase transition-all ${isGranted ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-white/5 text-gray-500 border border-white/5'}`}>
+                              {isGranted ? 'ACTIVE' : 'GRANT'}
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </>
+              );
+            })()}
 
             <div className="space-y-1 pt-1 text-left">
               <div className="text-[10px] font-bold text-gray-300">Background Services Integration</div>

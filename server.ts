@@ -21,21 +21,35 @@ const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
 async function fetchWithRetry<T>(
   operation: () => Promise<T>,
-  maxRetries: number = 3
+  maxRetries: number = 4
 ): Promise<T> {
   let attempt = 0;
   while (attempt < maxRetries) {
     try {
       return await operation();
     } catch (error: any) {
-      const isRateLimited = error?.status === 429 || error?.message?.includes('429') || error?.message?.includes('RESOURCE_EXHAUSTED') || error?.message?.includes('quota');
-      if (isRateLimited) {
+      const errorMsg = String(error?.message || error || '');
+      const status = error?.status || error?.code;
+      const isRateLimitedOrBusy = 
+        status === 429 || 
+        status === 503 ||
+        errorMsg.includes('429') || 
+        errorMsg.includes('503') ||
+        errorMsg.includes('RESOURCE_EXHAUSTED') || 
+        errorMsg.includes('quota') ||
+        errorMsg.includes('high demand') ||
+        errorMsg.includes('UNAVAILABLE') ||
+        errorMsg.includes('temporarily unavailable') ||
+        errorMsg.includes('overloaded') ||
+        errorMsg.includes('busy');
+
+      if (isRateLimitedOrBusy) {
         attempt++;
         if (attempt >= maxRetries) {
-          throw new Error("AI service is temporarily unavailable. Please try again later.");
+          throw new Error("AI service is temporarily unavailable due to high demand. Please try again in a few moments.");
         }
-        const waitTime = Math.pow(2, attempt) * 1000 + Math.random() * 1000;
-        console.log(`429 Too Many Requests, retrying in ${waitTime}ms...`);
+        const waitTime = Math.pow(2, attempt) * 800 + Math.random() * 500;
+        console.warn(`Gemini API busy/rate-limited (${status || 'unknown'}), retrying attempt ${attempt}/${maxRetries} in ${Math.round(waitTime)}ms...`);
         await delay(waitTime);
       } else {
         throw error;
@@ -291,8 +305,8 @@ async function createServer() {
       else if (quality === "2K") resolvedSize = "2K";
       else if (quality === "4K") resolvedSize = "4K";
 
-      // Use gemini-3.1-flash-image
-      const modelName = 'gemini-3.1-flash-image';
+      // Use gemini-2.0-flash
+      const modelName = 'gemini-2.0-flash';
 
       const numImages = Math.max(1, Math.min(4, count || 1));
       const imageResults: string[] = [];
@@ -361,7 +375,7 @@ async function createServer() {
 
       const ai = getGenAI();
       const response = await fetchWithRetry(() => ai.models.generateContent({
-        model: "gemini-3.5-flash",
+        model: "gemini-2.0-flash",
         contents: message,
       }));
 
@@ -382,14 +396,14 @@ async function createServer() {
   // Contextual Chat API route for Low Latency and automatic language/rule processing
   app.post('/api/chat', async (req: Request, res: Response) => {
     try {
-      const { contents, systemInstruction, customApiKey } = req.body;
+      const { contents, systemInstruction, customApiKey, tools } = req.body;
 
       if (!contents || !Array.isArray(contents)) {
          res.status(400).json({ error: 'Contents history is required' });
          return;
       }
 
-      const cacheKey = JSON.stringify({ contents, systemInstruction });
+      const cacheKey = JSON.stringify({ contents, systemInstruction, tools });
       const cached = getCachedResponse(cacheKey);
 
       const ai = getGenAI(customApiKey);
@@ -407,19 +421,25 @@ async function createServer() {
         }
 
         const streamResponse = await fetchWithRetry(() => ai.models.generateContentStream({
-          model: "gemini-3.5-flash",
+          model: "gemini-2.0-flash",
           contents,
           config: {
             systemInstruction: systemInstruction || undefined,
-            temperature: 0.4
+            temperature: 0.4,
+            tools: tools || undefined
           }
         }));
 
         let fullText = "";
         for await (const chunk of streamResponse) {
-          if (chunk.text) {
-            fullText += chunk.text;
-            res.write(`data: ${JSON.stringify({ text: chunk.text })}\n\n`);
+          const calls = chunk.functionCalls;
+          if (calls && calls.length > 0) {
+            res.write(`data: ${JSON.stringify({ functionCalls: calls })}\n\n`);
+          }
+          const chunkText = chunk.text;
+          if (chunkText) {
+            fullText += chunkText;
+            res.write(`data: ${JSON.stringify({ text: chunkText })}\n\n`);
           }
         }
         if (fullText) {
@@ -433,18 +453,24 @@ async function createServer() {
           return;
         }
         const response = await fetchWithRetry(() => ai.models.generateContent({
-          model: "gemini-3.5-flash",
+          model: "gemini-2.0-flash",
           contents,
           config: {
             systemInstruction: systemInstruction || undefined,
-            temperature: 0.4
+            temperature: 0.4,
+            tools: tools || undefined
           }
         }));
 
-        if (response.text) {
-          setCachedResponse(cacheKey, response.text);
+        const calls = response.functionCalls;
+        const responseText = response.text;
+        if (responseText) {
+          setCachedResponse(cacheKey, responseText);
         }
-        res.json({ reply: response.text });
+        res.json({ 
+          reply: responseText,
+          functionCalls: calls && calls.length > 0 ? calls : undefined
+        });
       }
     } catch (error: any) {
       console.error('API Chat error:', error);

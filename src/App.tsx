@@ -44,7 +44,10 @@ import { LiveMessaging } from './components/LiveMessaging';
 import { FriendsPage } from './components/FriendsPage';
 import { Routine } from './types';
 import { processVoiceOrTextCommand } from './lib/routineCommands';
-import { doc, getDoc, setDoc, updateDoc, collection, getDocs, query, where, onSnapshot, addDoc } from 'firebase/firestore';
+import { doc, getDoc, setDoc, updateDoc, collection, getDocs, query, where, onSnapshot, addDoc, orderBy, limit } from 'firebase/firestore';
+import { AppUpdateOverlay } from './components/AppUpdateOverlay';
+
+const CURRENT_VERSION_CODE = 1;
 import { Capacitor } from '@capacitor/core';
 import { signInWithCredential, signInWithEmailAndPassword, signInWithPopup, signInWithRedirect, getRedirectResult, GoogleAuthProvider, signOut, createUserWithEmailAndPassword, sendPasswordResetEmail, sendEmailVerification } from 'firebase/auth';
 import { FirebaseAuthentication } from '@capacitor-firebase/authentication';
@@ -686,6 +689,21 @@ function EmailVerificationScreen({ currentUser, onLogout, theme }: any) {
 
 export default function App() {
   const { appSettings } = useLiveSettings();
+  const [pendingUpdate, setPendingUpdate] = useState<any>(null);
+
+  useEffect(() => {
+    // App Update Check
+    const q = query(collection(db, 'app_updates'), orderBy('createdAt', 'desc'), limit(1));
+    const unsub = onSnapshot(q, (snap) => {
+      if (!snap.empty) {
+        const latestUpdate = { id: snap.docs[0].id, ...snap.docs[0].data() } as any;
+        if (Number(latestUpdate.versionCode) > CURRENT_VERSION_CODE) {
+          setPendingUpdate(latestUpdate);
+        }
+      }
+    });
+    return () => unsub();
+  }, []);
   
   const [currentTheme, setCurrentTheme] = useState<keyof typeof THEMES>(() => {
     return (localStorage.getItem('sweety_active_theme') as any) || 'dark';
@@ -837,6 +855,93 @@ export default function App() {
     const timestamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
     setSystemLogs(prev => [...prev, `[${timestamp}] ${log}`]);
   }, []);
+
+  const handleExecuteDeviceAction = useCallback(async (args: any, callId?: string): Promise<any> => {
+    const action = args.action;
+    const targetApp = args.appName || '';
+    const targetSetting = args.settingName || '';
+    
+    const isAutoAllow = userProfile?.autoAllowDeviceActions === true || localStorage.getItem('sweety_auto_allow_actions') === 'true';
+
+    const executeActionNow = () => {
+      addSystemLog(`[DEVICE_ACTION] Executing action: "${action}" (App: ${targetApp || 'N/A'}, Setting: ${targetSetting || 'N/A'})`);
+      if (action === 'call') {
+        setDeviceUtility({ type: 'call', args });
+        const phone = args.phoneNumber || '9876543210';
+        setTimeout(() => {
+          window.open(`tel:${phone}`, '_blank');
+        }, 1200);
+        return { status: 'success', message: `Calling ${args.contactName || 'number'} ${phone} initiated.` };
+      } else if (action === 'message') {
+        setDeviceUtility({ type: 'sms', args });
+        const phone = args.phoneNumber || '9876543210';
+        const textContent = args.messageContent || '';
+        setTimeout(() => {
+          window.open(`sms:${phone}?body=${encodeURIComponent(textContent)}`, '_blank');
+        }, 1200);
+        return { status: 'success', message: `SMS message draft dispatched to ${phone}.` };
+      } else if (action === 'open_app') {
+        if (targetApp) {
+          setDeviceUtility({ type: targetApp, args });
+          return { status: 'success', message: `Application ${targetApp} opened successfully.` };
+        } else {
+          return { status: 'error', message: 'No appName specified for open_app action.' };
+        }
+      } else if (action === 'screen_lock') {
+        setDeviceUtility({ type: 'lock_screen', args });
+        return { status: 'success', message: `Device locked successfully.` };
+      } else if (action === 'toggle_setting') {
+        if (targetSetting) {
+          setDeviceUtility({ type: targetSetting as any, args });
+          return { status: 'success', message: `Setting "${targetSetting}" changed to ${args.settingValue !== false ? 'enabled' : 'disabled'}.` };
+        } else {
+          return { status: 'error', message: 'No settingName specified for toggle_setting action.' };
+        }
+      } else {
+        return { status: 'error', message: `Action "${action}" is not recognized.` };
+      }
+    };
+
+    if (isAutoAllow) {
+      addSystemLog(`[AUTO_ALLOW] Automatically executing device action: "${action}"`);
+      return executeActionNow();
+    } else {
+      return new Promise((resolve) => {
+        let promptTitle = 'SECURITY AUTHORIZATION';
+        let promptDesc = 'Sweety is requesting permission to execute a device utility.';
+        
+        if (action === 'call') {
+          promptTitle = 'PHONE CALL REQUEST';
+          promptDesc = `Sweety wants to call ${args.contactName || 'the contact'} (${args.phoneNumber || 'unknown number'}). Allow?`;
+        } else if (action === 'message') {
+          promptTitle = 'SMS DISPATCH REQUEST';
+          promptDesc = `Sweety wants to send a message to ${args.phoneNumber || 'the contact'}. Allow?`;
+        } else if (action === 'open_app') {
+          promptTitle = 'APPLICATION BOOT REQUEST';
+          promptDesc = `Sweety wants to open the ${targetApp} utility. Allow?`;
+        } else if (action === 'toggle_setting') {
+          promptTitle = 'SYSTEM SETTING TOGGLE';
+          promptDesc = `Sweety wants to toggle ${targetSetting}. Allow?`;
+        }
+
+        setPendingAction({
+          id: callId || 'chat_device_action',
+          name: 'executeDeviceAction',
+          title: promptTitle,
+          description: promptDesc,
+          onConfirm: () => {
+            const res = executeActionNow();
+            resolve(res);
+            return res;
+          },
+          onCancel: () => {
+             resolve({ status: 'error', message: 'User denied permission.' });
+             return { status: 'error', message: 'User denied permission.' };
+          }
+        });
+      });
+    }
+  }, [userProfile, addSystemLog]);
 
   const handleToggleCompleted = useCallback(async (routine: Routine) => {
     if (!currentUser) return;
@@ -1872,10 +1977,16 @@ ${formattedHistory}
       const maskedKey = customKey ? `${customKey.substring(0, 4)}...${customKey.substring(customKey.length - 4)}` : 'None';
       console.log(`[DEBUG] Live Audio - Fetched Gemini API Key: ${maskedKey}`);
       const apiKey = customKey || process.env.GEMINI_API_KEY;
+      if (!apiKey) {
+        addSystemLog('[SECURITY] Gemini API Key must be set in Settings for Live Audio.');
+        setIsActive(false);
+        setIsListening(false);
+        return;
+      }
       const ai = new GoogleGenAI({ apiKey });
       
       const session = await ai.live.connect({
-        model: "gemini-3.1-flash-live-preview",
+        model: "gemini-2.0-flash",
         callbacks: {
           onopen: () => {
             setIsActive(true);
@@ -2029,42 +2140,81 @@ ${formattedHistory}
                   const targetApp = args.appName || '';
                   const targetSetting = args.settingName || '';
                   
-                  addSystemLog(`[DEVICE_ACTION] Executing action: "${action}" (App: ${targetApp || 'N/A'}, Setting: ${targetSetting || 'N/A'})`);
-                  
-                  if (action === 'call') {
-                    setDeviceUtility({ type: 'call', args });
-                    const phone = args.phoneNumber || '9876543210';
-                    setTimeout(() => {
-                      window.open(`tel:${phone}`, '_blank');
-                    }, 1200);
-                    result = { status: 'success', message: `Calling ${args.contactName || 'number'} ${phone} initiated.` };
-                  } else if (action === 'message') {
-                    setDeviceUtility({ type: 'sms', args });
-                    const phone = args.phoneNumber || '9876543210';
-                    const textContent = args.messageContent || '';
-                    setTimeout(() => {
-                      window.open(`sms:${phone}?body=${encodeURIComponent(textContent)}`, '_blank');
-                    }, 1200);
-                    result = { status: 'success', message: `SMS message draft dispatched to ${phone}.` };
-                  } else if (action === 'open_app') {
-                    if (targetApp) {
-                      setDeviceUtility({ type: targetApp, args });
-                      result = { status: 'success', message: `Application ${targetApp} opened successfully on Sweety OS.` };
+                  const isAutoAllow = userProfile?.autoAllowDeviceActions === true || localStorage.getItem('sweety_auto_allow_actions') === 'true';
+
+                  const executeActionNow = () => {
+                    addSystemLog(`[DEVICE_ACTION] Executing action: "${action}" (App: ${targetApp || 'N/A'}, Setting: ${targetSetting || 'N/A'})`);
+                    if (action === 'call') {
+                      setDeviceUtility({ type: 'call', args });
+                      const phone = args.phoneNumber || '9876543210';
+                      setTimeout(() => {
+                        window.open(`tel:${phone}`, '_blank');
+                      }, 1200);
+                      return { status: 'success', message: `Calling ${args.contactName || 'number'} ${phone} initiated.` };
+                    } else if (action === 'message') {
+                      setDeviceUtility({ type: 'sms', args });
+                      const phone = args.phoneNumber || '9876543210';
+                      const textContent = args.messageContent || '';
+                      setTimeout(() => {
+                        window.open(`sms:${phone}?body=${encodeURIComponent(textContent)}`, '_blank');
+                      }, 1200);
+                      return { status: 'success', message: `SMS message draft dispatched to ${phone}.` };
+                    } else if (action === 'open_app') {
+                      if (targetApp) {
+                        setDeviceUtility({ type: targetApp, args });
+                        return { status: 'success', message: `Application ${targetApp} opened successfully on Sweety OS.` };
+                      } else {
+                        return { status: 'error', message: 'No appName specified for open_app action.' };
+                      }
+                    } else if (action === 'screen_lock') {
+                      setDeviceUtility({ type: 'lock_screen', args });
+                      return { status: 'success', message: `Device locked successfully.` };
+                    } else if (action === 'toggle_setting') {
+                      if (targetSetting) {
+                        setDeviceUtility({ type: targetSetting as any, args });
+                        return { status: 'success', message: `Setting "${targetSetting}" changed to ${args.settingValue !== false ? 'enabled' : 'disabled'}.` };
+                      } else {
+                        return { status: 'error', message: 'No settingName specified for toggle_setting action.' };
+                      }
                     } else {
-                      result = { status: 'error', message: 'No appName specified for open_app action.' };
+                      return { status: 'error', message: `Action "${action}" is not recognized.` };
                     }
-                  } else if (action === 'screen_lock') {
-                    setDeviceUtility({ type: 'lock_screen', args });
-                    result = { status: 'success', message: `Device locked successfully.` };
-                  } else if (action === 'toggle_setting') {
-                    if (targetSetting) {
-                      setDeviceUtility({ type: targetSetting as any, args });
-                      result = { status: 'success', message: `Setting "${targetSetting}" changed to ${args.settingValue !== false ? 'enabled' : 'disabled'}.` };
-                    } else {
-                      result = { status: 'error', message: 'No settingName specified for toggle_setting action.' };
-                    }
+                  };
+
+                  if (isAutoAllow) {
+                    addSystemLog(`[AUTO_ALLOW] Automatically executing device action: "${action}"`);
+                    result = executeActionNow();
                   } else {
-                    result = { status: 'error', message: `Action "${action}" is not recognized.` };
+                    let promptTitle = 'SECURITY AUTHORIZATION';
+                    let promptDesc = 'Sweety is requesting permission to execute a device utility.';
+                    
+                    if (action === 'call') {
+                      promptTitle = 'PHONE CALL ACCESS';
+                      promptDesc = `Sweety is requesting permission to make a phone call to ${args.contactName || 'number'} (${args.phoneNumber || '9876543210'}).`;
+                    } else if (action === 'message') {
+                      promptTitle = 'SEND SMS ACCESS';
+                      promptDesc = `Sweety is requesting permission to send an SMS message to ${args.phoneNumber || '9876543210'}. Message Content: "${args.messageContent || ''}".`;
+                    } else if (action === 'open_app') {
+                      promptTitle = 'OPEN APPLICATION';
+                      promptDesc = `Sweety is requesting permission to open the application: "${targetApp || 'unnamed'}".`;
+                    } else if (action === 'screen_lock') {
+                      promptTitle = 'LOCK SCREEN ACCESS';
+                      promptDesc = `Sweety is requesting permission to lock the device screen.`;
+                    } else if (action === 'toggle_setting') {
+                      promptTitle = 'SYSTEM SETTINGS ACCESS';
+                      promptDesc = `Sweety is requesting permission to toggle the setting: "${targetSetting || 'hardware'}" to ${args.settingValue !== false ? 'Enabled' : 'Disabled'}.`;
+                    }
+
+                    setPendingAction({
+                      id: call.id,
+                      name: call.name,
+                      args: call.args,
+                      title: promptTitle,
+                      description: promptDesc,
+                      onConfirm: () => {
+                        return executeActionNow();
+                      }
+                    });
                   }
                 }
                 
@@ -3094,6 +3244,7 @@ ${formattedHistory}
                 userProfile={userProfile}
                 setShowPremiumModal={setShowPremiumModal}
                 setPremiumModalMessage={setPremiumModalMessage}
+                onExecuteDeviceAction={handleExecuteDeviceAction}
               />
             </motion.div>
           )}
@@ -3981,6 +4132,15 @@ ${formattedHistory}
           }}
         />
       )}
+      
+      <AnimatePresence>
+        {pendingUpdate && (
+          <AppUpdateOverlay 
+            update={pendingUpdate} 
+            onClose={() => setPendingUpdate(null)} 
+          />
+        )}
+      </AnimatePresence>
     </div>
   );
 }

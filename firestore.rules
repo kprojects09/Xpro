@@ -99,6 +99,39 @@ service cloud.firestore {
       allow list, create, delete: if isAdmin();
     }
 
+    match /announcements/{id} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /link_posts/{id} {
+      allow read: if true;
+      allow write: if isAdmin();
+      allow update: if isSignedIn(); // Allow incrementing clicksCount
+    }
+
+    match /banners/{id} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /app_updates/{id} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /news_feed/{id} {
+      allow read: if true;
+      allow write: if isAdmin();
+      allow update: if isSignedIn(); // Allow liking
+      
+      match /comments/{commentId} {
+        allow read: if true;
+        allow create: if isSignedIn();
+        allow update, delete: if isSignedIn() && (resource.data.senderId == request.auth.uid || isAdmin());
+      }
+    }
+
     // Conversations and Messaging
     function isConversationParticipant(convId) {
       return isSignedIn() && 

@@ -6,7 +6,7 @@ import { signOut } from 'firebase/auth';
 import { 
   LayoutDashboard, Users as UsersIcon, BookOpen, Layers, Book, FileText, File, HelpCircle, FileSignature, 
   Calendar, Megaphone, Bell, Image as ImageIcon, Cpu, Key, Palette, Settings, Info, School, 
-  Database, BarChart, LogOut, Check, Edit3, Trash2, Plus, X, Menu, HardDrive, MapPin, AlignLeft, Shield, CheckCircle, Crown, MessageSquare} from 'lucide-react';
+  Database, BarChart, LogOut, Check, Edit3, Trash2, Plus, X, Menu, HardDrive, MapPin, AlignLeft, Shield, CheckCircle, Crown, MessageSquare, Smartphone, Newspaper, Link as LinkIcon} from 'lucide-react';
 import { AnalyticsDashboard } from '../AnalyticsDashboard';
 import { FileManager } from './FileManager';
 import { ContentManager } from './ContentManager';
@@ -16,6 +16,9 @@ import { PremiumManager } from './PremiumManager';
 import { RedeemCodeManager } from './RedeemCodeManager';
 import { MessagingManager } from './MessagingManager';
 import { FriendshipManager } from './FriendshipManager';
+import { AnnouncementManager } from './AnnouncementManager';
+import { BannerManager, UpdateManager } from './PromotionManagers';
+import { LinkPostManager, NewsFeedManager } from './ContentManagers';
 
 // Generic CRUD Component for simple collections (classes, subjects, mock tests, Pyq etc. if needed to be manually managed)
 function GenericCRUD({ title, collectionName, fields }: { title: string, collectionName: string, fields: any[] }) {
@@ -106,15 +109,19 @@ const NAV_ITEMS = [
   { id: 'app_control', label: 'App Control', icon: Settings, category: 'Main' },
   { id: 'premium_manager', label: 'Premium & Voice', icon: Crown, category: 'Main' },
   { id: 'redeem_codes', label: 'Redeem Codes', icon: Key, category: 'Main' },
-  { id: 'content_manager', label: 'Content Manager', icon: Layers, category: 'Main' },
+  { id: 'content_manager', label: 'Course Content', icon: Layers, category: 'Main' },
   { id: 'file_manager', label: 'File Manager', icon: File, category: 'Main' },
   { id: 'users', label: 'Users', icon: UsersIcon, category: 'Main' },
+  { id: 'announcements', label: 'Announcements', icon: Megaphone, category: 'CMS' },
+  { id: 'banners', label: 'Banner Ads', icon: ImageIcon, category: 'CMS' },
+  { id: 'app_updates', label: 'App Updates', icon: Smartphone, category: 'CMS' },
+  { id: 'news_feed', label: 'News Feed', icon: Newspaper, category: 'CMS' },
+  { id: 'link_posts', label: 'Link Manager', icon: LinkIcon, category: 'CMS' },
   { id: 'classes', label: 'Classes', icon: Layers, category: 'Organization' },
   { id: 'subjects', label: 'Subjects', icon: Book, category: 'Organization' },
   { id: 'chapters', label: 'Chapters', icon: BookOpen, category: 'Organization' },
   { id: 'routine', label: 'Routine', icon: Calendar, category: 'Features' },
-  { id: 'notifications', label: 'Notifications', icon: Megaphone, category: 'Features' },
-  { id: 'announcements', label: 'Announcements', icon: Megaphone, category: 'Features' },
+  { id: 'notifications', label: 'Push Notifications', icon: Bell, category: 'Features' },
   { id: 'messaging_manager', label: 'Messaging Manager', icon: MessageSquare, category: 'Features' },
   { id: 'friendship_manager', label: 'Friendship Manager', icon: UsersIcon, category: 'Features' },
   { id: 'school_database', label: 'School Database', icon: School, category: 'Organization' },
@@ -131,6 +138,11 @@ export function AdminDashboard({ onLogout, onClose }: { onLogout: () => void; cu
       case 'premium_manager': return <PremiumManager />;
       case 'redeem_codes': return <RedeemCodeManager />;
       case 'content_manager': return <ContentManager />;
+      case 'announcements': return <AnnouncementManager />;
+      case 'banners': return <BannerManager />;
+      case 'app_updates': return <UpdateManager />;
+      case 'news_feed': return <NewsFeedManager />;
+      case 'link_posts': return <LinkPostManager />;
       case 'file_manager': return <FileManager />;
       case 'analytics': return <AnalyticsDashboard />;
       case 'messaging_manager': return <MessagingManager />;
@@ -141,7 +153,6 @@ export function AdminDashboard({ onLogout, onClose }: { onLogout: () => void; cu
       case 'routine': return <GenericCRUD title="Routine" collectionName="admin_routines" fields={[{name:'title', label:'Title'}, {name:'time', label:'Time'}]} />;
       case 'notifications': return <GenericCRUD title="Notifications" collectionName="admin_notifications" fields={[{name:'title', label:'Title'}, {name:'body', label:'Body'}]} />;
       case 'users': return <Users />;
-      case 'announcements': return <GenericCRUD title="Announcements" collectionName="announcements" fields={[{name:'title', label:'Title'}, {name:'link', label:'Link (Optional)'}]} />;
       case 'school_database': return <GenericCRUD title="School Database" collectionName="admin_schools" fields={[{name:'name', label:'School Name'}, {name:'state', label:'State'}, {name:'district', label:'District'}]} />;
       default: return <div className="p-6">Select an option from the sidebar.</div>;
     }
@@ -171,7 +182,7 @@ export function AdminDashboard({ onLogout, onClose }: { onLogout: () => void; cu
             </div>
             
             <div className="flex-1 py-4 px-3 space-y-1">
-              {['Main', 'Organization', 'Features', 'System'].map(category => (
+              {['Main', 'Organization', 'CMS', 'Features', 'System'].map(category => (
                 <div key={category} className="mb-6">
                   <div className="px-3 mb-2 text-[10px] font-bold uppercase tracking-wider text-gray-500">
                     {category}
