@@ -375,7 +375,7 @@ async function createServer() {
 
       const ai = getGenAI();
       const response = await fetchWithRetry(() => ai.models.generateContent({
-        model: "gemini-2.0-flash",
+        model: "gemini-3.5-flash",
         contents: message,
       }));
 
@@ -421,7 +421,7 @@ async function createServer() {
         }
 
         const streamResponse = await fetchWithRetry(() => ai.models.generateContentStream({
-          model: "gemini-2.0-flash",
+          model: "gemini-3.5-flash",
           contents,
           config: {
             systemInstruction: systemInstruction || undefined,

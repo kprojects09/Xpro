@@ -39,7 +39,7 @@ export function AIChatRoom({
   
   const userName = userProfile?.fullName || userProfile?.displayName || userProfile?.username || currentUser?.displayName || '';
   const greeting = userName ? `Hello, ${userName}!` : 'Hello!';
-  const defaultMessageText = appSettings?.welcomeMessage || `${greeting} Ami ${appSettings?.aiAssistantName || 'Sweety'}, apnar personal AI Study Assistant...`;
+  const defaultMessageText = appSettings?.welcomeMessage || `${greeting} Ami ${appSettings?.aiAssistantName || 'XPRO AGENT'}, apnar personal AI Study Assistant...`;
 
   // Default first message for fresh sessions
   const defaultMessage = useMemo(() => ({
@@ -383,7 +383,7 @@ export function AIChatRoom({
     if (userText && currentUser) {
       try {
         const { processVoiceOrTextCommand } = await import('../lib/routineCommands');
-        const userLang = 'English'; // fallback lang
+        const userLang = (userProfile?.language as 'English' | 'Bengali' | 'Hindi') || 'English';
         const res = await processVoiceOrTextCommand(userText, currentUser.uid, userLang);
         if (res.matched) {
           const assistantMsg = {
@@ -603,7 +603,7 @@ RESPONSE STYLE: Be EXTREMELY fast, brief, snappy, and concise. Keep your respons
         } else if (lower.includes('bengali') || lower.includes('bengla') || lower.includes('bhasha')) {
           updateAssistantMessage("Ami to Bengali khub bhalo bhabe bujhi! Settings change kore nite paro ba ekhane chat-eo kotha bolte paro. Tomar ajke porar topic-ta amake bolo.");
         } else {
-          updateAssistantMessage(`Bolo! Ami ${appSettings.aiAssistantName || 'Sweety'}, tomar premium study co-pilot. Tomar equations query, coding problems, code bugs, naki calculus logic help korbo bolo? Ami instantly analyze kore complete logic prepare korchi!`);
+          updateAssistantMessage(`Bolo! Ami ${appSettings.aiAssistantName || 'XPRO AGENT'}, tomar premium study co-pilot. Tomar equations query, coding problems, code bugs, naki calculus logic help korbo bolo? Ami instantly analyze kore complete logic prepare korchi!`);
         }
       }
 
@@ -1013,7 +1013,7 @@ RESPONSE STYLE: Be EXTREMELY fast, brief, snappy, and concise. Keep your respons
             <input 
               value={inputText}
               onChange={(e) => setInputText(e.target.value)}
-              placeholder={`Ask ${appSettings.aiAssistantName || 'Sweety'} anything about calculus, mechanics, or study planning...`}
+              placeholder={`Ask ${appSettings.aiAssistantName || 'XPRO AGENT'} anything about calculus, mechanics, or study planning...`}
               className="flex-1 bg-black/40 border border-white/10 px-4 py-3 rounded-2xl text-xs placeholder:text-gray-500 focus:outline-none focus:border-indigo-500 transition-colors text-white"
             />
             <button 

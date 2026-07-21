@@ -199,7 +199,7 @@ export function Settings({
       result = await permissionManager.requestPermission(
         type,
         p.name + " Permission",
-        `Sweety is requesting access to your device ${p.name.toLowerCase()} capability.`
+        `XPRO AGENT is requesting access to your device ${p.name.toLowerCase()} capability.`
       );
     }
 
@@ -787,7 +787,7 @@ export function Settings({
                 <div className="text-[10px] text-gray-400">Allow push notifications</div>
               </div>
               <button 
-                onClick={() => permissionManager.requestPermission('notifications', 'Push Notifications', 'Sweety will send you alerts for missed calls, friend requests, and study reminders.')}
+                onClick={() => permissionManager.requestPermission('notifications', 'Push Notifications', 'XPRO AGENT will send you alerts for missed calls, friend requests, and study reminders.')}
                 className="px-3 py-1.5 bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 rounded-lg text-xs font-bold"
               >
                 Allow

@@ -233,7 +233,7 @@ export function StudyRoutine({ currentUser, language, addSystemLog }: StudyRouti
     
     // Check Notification Permissions
     if ('Notification' in window && Notification.permission === 'default') {
-      permissionManager.requestPermission('notifications', 'Push Notifications', 'Sweety needs notification access to remind you about your upcoming study routines.');
+      permissionManager.requestPermission('notifications', 'Push Notifications', 'XPRO AGENT needs notification access to remind you about your upcoming study routines.');
     }
   }, [currentUser]);
 

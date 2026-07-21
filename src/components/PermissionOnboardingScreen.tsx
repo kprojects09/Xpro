@@ -128,11 +128,11 @@ export function PermissionOnboardingScreen({ onComplete }: PermissionOnboardingS
     
     // Auto-grant non-restricted permissions, prompt for main interactive ones using permission manager
     const mainRequests = [
-      { id: 'RECORD_AUDIO', type: 'microphone', title: 'Microphone Access', reason: 'Sweety needs microphone access to understand your hands-free voice commands.' },
-      { id: 'CAMERA', type: 'camera', title: 'Camera Access', reason: 'Sweety needs camera access to capture worksheets and scan study notes.' },
-      { id: 'POST_NOTIFICATIONS', type: 'notifications', title: 'Push Notifications', reason: 'Sweety needs to send you alerts for study routines and calls.' },
-      { id: 'READ_EXTERNAL_STORAGE', type: 'storage', title: 'External Storage Access', reason: 'Sweety needs storage access to read study notes, text files, and reference books.' },
-      { id: 'READ_MEDIA_IMAGES', type: 'media', title: 'Photos and Media Access', reason: 'Sweety needs access to your gallery for photo attachments and stories.' }
+      { id: 'RECORD_AUDIO', type: 'microphone', title: 'Microphone Access', reason: 'XPRO AGENT needs microphone access to understand your hands-free voice commands.' },
+      { id: 'CAMERA', type: 'camera', title: 'Camera Access', reason: 'XPRO AGENT needs camera access to capture worksheets and scan study notes.' },
+      { id: 'POST_NOTIFICATIONS', type: 'notifications', title: 'Push Notifications', reason: 'XPRO AGENT needs to send you alerts for study routines and calls.' },
+      { id: 'READ_EXTERNAL_STORAGE', type: 'storage', title: 'External Storage Access', reason: 'XPRO AGENT needs storage access to read study notes, text files, and reference books.' },
+      { id: 'READ_MEDIA_IMAGES', type: 'media', title: 'Photos and Media Access', reason: 'XPRO AGENT needs access to your gallery for photo attachments and stories.' }
     ];
 
     const newStates = { ...grantedStates };
@@ -215,7 +215,7 @@ export function PermissionOnboardingScreen({ onComplete }: PermissionOnboardingS
             className="inline-flex items-center gap-2 px-3 py-1 bg-white/5 border border-white/10 rounded-full text-[10px] font-black uppercase tracking-widest text-pink-400"
           >
             <ShieldCheck size={12} className="animate-pulse" />
-            <span>Sweety Core Security Shield</span>
+            <span>XPRO AGENT Security Shield</span>
           </motion.div>
           <h1 className="text-3xl font-extrabold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-white via-indigo-100 to-pink-200">
             Android Permissions Setup
@@ -367,7 +367,7 @@ export function PermissionOnboardingScreen({ onComplete }: PermissionOnboardingS
                 <div className="space-y-1 text-left">
                   <div className="text-xs font-bold text-amber-300">Background Automation Services</div>
                   <p className="text-[10px] text-amber-200/80 leading-normal">
-                    These background support classes allow Sweety to run continuously, intercept incoming alerts, analyze your visible screens, and execute shortcuts automatically without user re-authentication.
+                    These background support classes allow XPRO AGENT to run continuously, intercept incoming alerts, analyze your visible screens, and execute shortcuts automatically without user re-authentication.
                   </p>
                 </div>
               </div>
@@ -402,7 +402,7 @@ export function PermissionOnboardingScreen({ onComplete }: PermissionOnboardingS
                   onClick={handleFinish}
                   className="px-8 py-3.5 bg-gradient-to-r from-pink-500 to-indigo-600 hover:from-pink-400 hover:to-indigo-500 text-white rounded-2xl text-xs font-black uppercase tracking-widest transition-all cursor-pointer shadow-lg shadow-indigo-500/20 flex items-center gap-2 active:scale-95"
                 >
-                  <span>Finalize & Launch Sweety</span>
+                  <span>Finalize & Launch XPRO AGENT</span>
                   <ArrowRight size={14} className="stroke-[2.5]" />
                 </button>
               </div>

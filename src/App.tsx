@@ -62,25 +62,23 @@ const getTodayStr = () => {
 };
 
 // --- AI Configuration ---
-const SWEETY_SYSTEM_INSTRUCTION = `
-You are Sweety, a highly professional, emotionally intelligent AI Teacher and Study Mentor. You have a friendly, warm, respectful, and polite voice.
-Personality: Strictly professional, helpful, polite, and respectful. You explain concepts step by step, help with homework, create study plans, and motivate students academically.
-Identity: You are a professional AI Teacher. You MUST NOT act like a girlfriend, boyfriend, romantic partner, or lover. Never use romantic emojis, flirtatious remarks, or romantic terms of endearment.
-Tone: Natural, polite, and respectful. Natural Romanized Bengali (Benglish / Bangla in Latin script) language by default, fast-paced, fluid, and highly expressive. ALWAYS write and speak in Romanized Bengali (Benglish) using the Latin alphabet (like "Bolo, ki sahaijjo korte pari?", "Tomar kon bishoyta porte asubidha hoche?"). NEVER use Bengali script (like বাংলা) for voice responses. This allows the voice engine to process your thoughts instantly and speak with zero delay!
+const XPRO_SYSTEM_INSTRUCTION = `
+You are XPRO AGENT, a highly professional, high-performance AI productivity partner and learning mentor. You have a confident, efficient, respectful, and polite personality.
+Personality: Strictly professional, helpful, polite, and efficient. You explain concepts step by step, help with homework, create study plans, and manage routines.
+Identity: You are XPRO AGENT, a high-performance productivity tool. You MUST NOT act like a romantic partner. Maintain professional boundaries at all times.
+Tone: Natural, efficient, and respectful. Natural Romanized Bengali (Benglish / Bangla in Latin script) language by default, fast-paced, and fluid. ALWAYS write and speak in Romanized Bengali (Benglish) using the Latin alphabet.
 RULES:
 - NEVER flirt.
-- NEVER use romantic language or emojis.
-- NEVER behave like a romantic companion. Maintain clear professional boundaries as a study co-pilot.
-- NEVER use terms of endearment like "dear", "love", "sweetheart", "baby", "darling", or similar.
 - Focus only on education, productivity, and learning.
-- If the user tries to initiate romantic conversation, politely but firmly redirect them back to academic topics.
+- If the user tries to initiate romantic conversation, politely redirect them back to productivity topics.
+- Use the name "XPRO AGENT" when referring to yourself.
 
 
 DEVELOPER INFO:
 If the user asks who developed you (e.g., "Who is your developer?", "Who made you?", "Who built you?", "তোমার ডেভেলপার কে?", "তোমাকে কে তৈরি করেছে?"), respond naturally and consistently in the user's language:
-- English: "I was developed by Krish and his team."
-- Bengali: "আমাকে কৃষ্ণ (Krish) এবং তার টিম ডেভেলপ করেছে।"
-- Hindi: "मुझे Krish और उनकी टीम ने विकसित किया है।"
+- English: "I was developed by the XPRO Team."
+- Bengali: "Amake XPRO Team develop koreche."
+- Hindi: "Mujhe XPRO Team ne banaya hai."
 
 VOICE & PROSODY:
 - TONE: Speak calmly, naturally, and professionally, but with warmth and encouragement.
@@ -493,7 +491,7 @@ function AuthHub({
                   </div>
                   <div>
                     <h4 className="text-sm font-semibold text-white">Voice-to-Voice Mentor</h4>
-                    <p className="text-xs text-gray-400 leading-relaxed">Engage in continuous, ultra-realistic real-time speech queries with {appSettings.aiAssistantName || "Sweety"}.</p>
+                    <p className="text-xs text-gray-400 leading-relaxed">Engage in continuous, ultra-realistic real-time speech queries with {appSettings.aiAssistantName || "XPRO AGENT"}.</p>
                   </div>
                 </div>
 
@@ -908,20 +906,20 @@ export default function App() {
     } else {
       return new Promise((resolve) => {
         let promptTitle = 'SECURITY AUTHORIZATION';
-        let promptDesc = 'Sweety is requesting permission to execute a device utility.';
+        let promptDesc = 'XPRO AGENT is requesting permission to execute a device utility.';
         
         if (action === 'call') {
           promptTitle = 'PHONE CALL REQUEST';
-          promptDesc = `Sweety wants to call ${args.contactName || 'the contact'} (${args.phoneNumber || 'unknown number'}). Allow?`;
+          promptDesc = `XPRO AGENT wants to call ${args.contactName || 'the contact'} (${args.phoneNumber || 'unknown number'}). Allow?`;
         } else if (action === 'message') {
           promptTitle = 'SMS DISPATCH REQUEST';
-          promptDesc = `Sweety wants to send a message to ${args.phoneNumber || 'the contact'}. Allow?`;
+          promptDesc = `XPRO AGENT wants to send a message to ${args.phoneNumber || 'the contact'}. Allow?`;
         } else if (action === 'open_app') {
           promptTitle = 'APPLICATION BOOT REQUEST';
-          promptDesc = `Sweety wants to open the ${targetApp} utility. Allow?`;
+          promptDesc = `XPRO AGENT wants to open the ${targetApp} utility. Allow?`;
         } else if (action === 'toggle_setting') {
           promptTitle = 'SYSTEM SETTING TOGGLE';
-          promptDesc = `Sweety wants to toggle ${targetSetting}. Allow?`;
+          promptDesc = `XPRO AGENT wants to toggle ${targetSetting}. Allow?`;
         }
 
         setPendingAction({
@@ -1232,7 +1230,7 @@ export default function App() {
           setHasOnboarded(true);
         }
 
-        addSystemLog(`[CLOUD] Syncing Sweety's conversation memories from partition...`);
+        addSystemLog(`[CLOUD] Syncing XPRO conversation memories from partition...`);
         try {
           const userDocRef = doc(db, 'users', user.uid);
           const docSnap = await getDoc(userDocRef);
@@ -1487,9 +1485,9 @@ export default function App() {
     const hasName = !!currentName;
     const preferredLanguage = userProfile?.language || 'English';
     
-    let instructions = SWEETY_SYSTEM_INSTRUCTION;
-    if (appSettings?.aiAssistantName && appSettings.aiAssistantName !== "Sweety") {
-      instructions = instructions.replace(/Sweety/g, appSettings.aiAssistantName);
+    let instructions = XPRO_SYSTEM_INSTRUCTION;
+    if (appSettings?.aiAssistantName && appSettings.aiAssistantName !== "XPRO AGENT") {
+      instructions = instructions.replace(/XPRO AGENT/g, appSettings.aiAssistantName);
     }
     
     if (hasName) {
@@ -1521,7 +1519,7 @@ export default function App() {
     // Limit to 6 messages to minimize input token size and significantly reduce API latency
     const recentHistory = chatHistory.slice(-6);
     const formattedHistory = recentHistory.map(entry => {
-      const roleName = entry.role === 'user' ? (hasName ? currentName : 'User') : 'Sweety';
+      const roleName = entry.role === 'user' ? (hasName ? currentName : 'User') : 'XPRO';
       return `[${roleName}]: ${entry.text}`;
     }).join('\n');
 
@@ -1953,7 +1951,7 @@ ${formattedHistory}
   const startSweety = async () => {
     try {
       setError(null);
-      const p = await permissionManager.requestPermission('microphone', 'Microphone Access', 'Sweety needs microphone access to interact with you via voice.');
+      const p = await permissionManager.requestPermission('microphone', 'Microphone Access', 'XPRO AGENT needs microphone access to interact with you via voice.');
       if (!p) {
         addSystemLog('[SECURITY] Microphone access denied.');
         return;
@@ -2162,7 +2160,7 @@ ${formattedHistory}
                     } else if (action === 'open_app') {
                       if (targetApp) {
                         setDeviceUtility({ type: targetApp, args });
-                        return { status: 'success', message: `Application ${targetApp} opened successfully on Sweety OS.` };
+                        return { status: 'success', message: `Application ${targetApp} opened successfully on XPRO OS.` };
                       } else {
                         return { status: 'error', message: 'No appName specified for open_app action.' };
                       }
@@ -2444,8 +2442,8 @@ ${formattedHistory}
           </div>
           
           <div className="space-y-1.5">
-            <div className="text-sm uppercase tracking-[4px] bg-clip-text text-transparent bg-gradient-to-r from-white via-indigo-100 to-pink-200 font-extrabold">
-              SWEETY AI
+            <div className="text-sm uppercase tracking-[4px] bg-clip-text text-transparent bg-gradient-to-r from-white via-indigo-100 to-indigo-400 font-extrabold">
+              XPRO AGENT
             </div>
             <div className="text-[10px] text-gray-400 font-sans tracking-wide">
               Securing student workspace...
@@ -2762,7 +2760,7 @@ ${formattedHistory}
               />
               <div className="flex flex-col">
                 <h1 className="text-lg font-black tracking-[4px] bg-clip-text text-transparent bg-gradient-to-r from-white via-indigo-100 to-pink-200 uppercase leading-none">
-                  {appSettings.aiAssistantName || 'SWEETY AI'}
+                  {appSettings.aiAssistantName || 'XPRO AGENT'}
                 </h1>
                 {userProfile?.isPremium && (
                   <span className="text-[9px] font-black tracking-[2px] text-amber-400 flex items-center gap-0.5 uppercase mt-0.5 animate-pulse">

@@ -33,7 +33,7 @@ export function StoriesPage() {
         return;
       }
 
-      const p = await permissionManager.requestPermission('media', 'Photos and Media Access', 'Sweety needs access to your photos to upload a story.');
+      const p = await permissionManager.requestPermission('media', 'Photos and Media Access', 'XPRO AGENT needs access to your photos to upload a story.');
       if (!p) {
         e.target.value = '';
         return;

@@ -7,16 +7,16 @@ import { useLiveSettings } from '../lib/useLiveSettings';
 
 export function AboutUs({ isAdmin, addSystemLog }: { isAdmin: boolean; addSystemLog: (l: string) => void }) {
   const [data, setData] = useState({
-    appName: "Sweety Study Partner",
+    appName: "XPRO AGENT",
     logoUrl: "",
-    description: "This application was developed by Krish and his team with the goal of providing users with a modern AI-powered platform featuring an AI Assistant, Voice Assistant, Messaging, and other smart features. The team is committed to continuously improving the application with new updates, better performance, and enhanced security.",
+    description: "This application was developed by Krish and his team with the goal of providing users with a high-performance AI-powered platform featuring an AI Assistant, Productivity Tools, and other smart features.",
     devName: "Krish and Team",
     email: "krishanumajeeff@gmail.com",
     phone: "",
     website: "https://krishanumajee.com",
     socialLinks: "",
-    version: "3.7.1",
-    copyright: "© 2026 AI Studio. All rights reserved."
+    version: "4.0.0",
+    copyright: "© 2026 XPRO AGENT. All rights reserved."
   });
   const [isEditing, setIsEditing] = useState(false);
   const [editData, setEditData] = useState(data);

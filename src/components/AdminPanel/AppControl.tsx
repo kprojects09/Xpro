@@ -7,16 +7,16 @@ import { Save, Upload, Edit3, Image as ImageIcon } from 'lucide-react';
 
 export function AppControl() {
   const [data, setData] = useState({
-    appName: "Sweety Study Partner",
-    shortName: "Sweety AI",
-    primaryColor: "#ec4899",
+    appName: "XPRO AGENT",
+    shortName: "XPRO AGENT",
+    primaryColor: "#6366f1",
     themeType: "dark",
-    welcomeMessage: "Welcome to your premium study mentor",
+    welcomeMessage: "Welcome to XPRO AGENT - Your Productivity Co-pilot",
     appLogoUrl: "",
     splashLogoUrl: "",
     splashBackgroundUrl: "",
-    appDescription: "Your intelligent companion for academic success and daily routines.",
-    aiAssistantName: "Sweety",
+    appDescription: "Your high-performance AI assistant for productivity, learning, and automation.",
+    aiAssistantName: "XPRO AGENT",
     aiAssistantAvatarUrl: "",
     customGeminiApiKey: "",
     membershipBannerUrl: "",

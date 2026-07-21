@@ -25,8 +25,8 @@ export function DeviceUtilityOverlay({ utility, onClose }: DeviceUtilityOverlayP
   
   // Terminal
   const [terminalLogs, setTerminalLogs] = useState<string[]>([
-    'Sweety OS [Version 3.9]',
-    '(c) 2026 Sweety Corporation. All rights reserved.',
+    'XPRO OS [Version 4.0]',
+    '(c) 2026 XPRO AGENT. All rights reserved.',
     'Initializing secure core module...',
     'Kernel components mapped. Memory space: 4.2 GB safe.',
     'System standby: ready for instruction.'
@@ -95,7 +95,7 @@ export function DeviceUtilityOverlay({ utility, onClose }: DeviceUtilityOverlayP
   // Calendar Events
   const [calendarEvents, setCalendarEvents] = useState([
     { id: '1', title: 'Calculus Advanced Webinar', date: '2026-07-21', time: '10:00 AM', desc: 'Cover limits, integrals & dynamic curves.' },
-    { id: '2', title: 'Sweety System Maintenance Check', date: '2026-07-22', time: '02:00 PM', desc: 'Routine background sync diagnostics.' },
+    { id: '2', title: 'XPRO System Maintenance Check', date: '2026-07-22', time: '02:00 PM', desc: 'Routine background sync diagnostics.' },
     { id: '3', title: 'Chemistry Semester Practical', date: '2026-07-24', time: '11:30 AM', desc: 'At laboratory hall B.' }
   ]);
   const [newCalTitle, setNewCalTitle] = useState('');
@@ -108,8 +108,8 @@ export function DeviceUtilityOverlay({ utility, onClose }: DeviceUtilityOverlayP
   const [mediaProgress, setMediaProgress] = useState(34); // percent
   const [mediaTrack, setMediaTrack] = useState({
     title: 'Study Lofi Chill Beats (Episode 42)',
-    artist: 'Sweety Soundscapes',
-    album: 'Sweety Chill Study Sessions',
+    artist: 'XPRO Soundscapes',
+    album: 'XPRO Focus Sessions',
     duration: '3:45',
     cover: 'https://images.unsplash.com/photo-1518609878373-06d740f60d8b?auto=format&fit=crop&w=300&q=80'
   });
@@ -224,7 +224,7 @@ export function DeviceUtilityOverlay({ utility, onClose }: DeviceUtilityOverlayP
     if (!terminalInput.trim()) return;
 
     const cmd = terminalInput.trim().toLowerCase();
-    const newLogs = [...terminalLogs, `guest@sweety:~ $ ${terminalInput}`];
+    const newLogs = [...terminalLogs, `agent@xpro:~ $ ${terminalInput}`];
     
     if (cmd === 'clear') {
       setTerminalLogs([]);
@@ -260,7 +260,7 @@ export function DeviceUtilityOverlay({ utility, onClose }: DeviceUtilityOverlayP
       utility.type = 'lock_screen';
       return;
     } else {
-      newLogs.push(`sweety-sh: command not found: ${terminalInput}`);
+      newLogs.push(`xpro-sh: command not found: ${terminalInput}`);
     }
 
     setTerminalLogs(newLogs);
@@ -356,14 +356,14 @@ export function DeviceUtilityOverlay({ utility, onClose }: DeviceUtilityOverlayP
               </div>
               <div>
                 <h3 className="text-sm font-black text-white uppercase tracking-wider">
-                  {utility.type === 'calculator' && 'Sweety Calculator'}
-                  {utility.type === 'terminal' && 'Sweety Core Terminal'}
-                  {utility.type === 'file_browser' && 'Sweety File Browser'}
-                  {utility.type === 'camera' && 'Sweety Camera App'}
-                  {utility.type === 'system_monitor' && 'Sweety System Diagnostics'}
+                  {utility.type === 'calculator' && 'XPRO Calculator'}
+                  {utility.type === 'terminal' && 'XPRO Core Terminal'}
+                  {utility.type === 'file_browser' && 'XPRO File Browser'}
+                  {utility.type === 'camera' && 'XPRO Camera App'}
+                  {utility.type === 'system_monitor' && 'XPRO System Diagnostics'}
                   {utility.type === 'call' && 'Outbound Audio Call'}
                   {utility.type === 'sms' && 'Secure Message dispatch'}
-                  {utility.type === 'lock_screen' && 'Sweety Guard Lock'}
+                  {utility.type === 'lock_screen' && 'XPRO Guard Lock'}
                   {utility.type === 'flashlight' && 'Hardware Flashlight'}
                   {utility.type === 'wifi' && 'WiFi Signal Sync'}
                   {utility.type === 'bluetooth' && 'Bluetooth Link Layer'}
@@ -377,15 +377,15 @@ export function DeviceUtilityOverlay({ utility, onClose }: DeviceUtilityOverlayP
                   {utility.type === 'gallery' && 'Device Photo Album'}
                   {utility.type === 'clock' && 'World Clock Engine'}
                   {utility.type === 'google_search' && 'Google Query Search'}
-                  {utility.type === 'alarm' && 'Sweety Alarm Clock'}
+                  {utility.type === 'alarm' && 'XPRO Alarm Clock'}
                   {utility.type === 'reminder' && 'Task Reminders'}
                   {utility.type === 'calendar' && 'Academic Calendar'}
-                  {utility.type === 'media_playback' && 'Sweety Media Player'}
+                  {utility.type === 'media_playback' && 'XPRO Media Player'}
                   {utility.type === 'battery' && 'Battery Intelligence'}
                   {utility.type === 'storage' && 'Device Storage Hub'}
                   {utility.type === 'internet_status' && 'Connectivity & Network'}
                 </h3>
-                <p className="text-[10px] text-gray-400 mt-0.5">SWEETY OS v3.9 SECURE ACCESS</p>
+                <p className="text-[10px] text-gray-400 mt-0.5">XPRO AGENT v4.0 SECURE ACCESS</p>
               </div>
             </div>
             
@@ -473,18 +473,18 @@ export function DeviceUtilityOverlay({ utility, onClose }: DeviceUtilityOverlayP
                   <div className="w-2.5 h-2.5 rounded-full bg-red-500/80" />
                   <div className="w-2.5 h-2.5 rounded-full bg-yellow-500/80" />
                   <div className="w-2.5 h-2.5 rounded-full bg-green-500/80" />
-                  <span className="ml-2 text-[10px] uppercase tracking-wider">guest@sweety_os:~</span>
+                  <span className="ml-2 text-[10px] uppercase tracking-wider">agent@xpro_os:~</span>
                 </div>
                 <div className="flex-1 overflow-y-auto p-4 space-y-2 select-text selection:bg-pink-500 selection:text-white">
                   {terminalLogs.map((log, i) => (
-                    <div key={i} className={log.startsWith('guest@') ? 'text-indigo-400' : log.startsWith('  ') ? 'text-gray-400 pl-2' : 'text-emerald-400'}>
+                    <div key={i} className={log.startsWith('agent@') ? 'text-indigo-400' : log.startsWith('  ') ? 'text-gray-400 pl-2' : 'text-emerald-400'}>
                       {log}
                     </div>
                   ))}
                   <div ref={termEndRef} />
                 </div>
                 <form onSubmit={handleTerminalCommand} className="flex border-t border-white/10 shrink-0">
-                  <span className="pl-4 py-3 bg-black text-indigo-400 select-none">guest@sweety:~ $</span>
+                  <span className="pl-4 py-3 bg-black text-indigo-400 select-none">agent@xpro:~ $</span>
                   <input
                     type="text"
                     value={terminalInput}
@@ -539,7 +539,7 @@ export function DeviceUtilityOverlay({ utility, onClose }: DeviceUtilityOverlayP
                     {[
                       { name: 'Routine_Schedule.pdf', size: '1.2 MB', date: 'Yesterday' },
                       { name: 'Semester_Syllabus.docx', size: '2.4 MB', date: 'July 18' },
-                      { name: 'Sweety_API_Blueprint.json', size: '4 KB', date: 'July 15' },
+                      { name: 'XPRO_API_Blueprint.json', size: '4 KB', date: 'July 15' },
                     ].map((f, i) => (
                       <div key={i} className="flex items-center justify-between p-3.5 bg-white/5 border border-white/5 rounded-xl hover:bg-white/10 transition-colors">
                         <div className="flex items-center gap-3">
@@ -603,7 +603,7 @@ export function DeviceUtilityOverlay({ utility, onClose }: DeviceUtilityOverlayP
                 <div className="relative aspect-video rounded-3xl bg-slate-950 border border-white/10 overflow-hidden shadow-2xl flex items-center justify-center">
                   <div className="absolute top-4 left-4 flex gap-2 z-10 text-[10px] font-mono bg-black/60 px-3 py-1.5 rounded-full border border-white/10 text-emerald-400 items-center">
                     <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
-                    SWEETY LIVE FHD VIEW
+                    XPRO LIVE FHD VIEW
                   </div>
                   
                   {/* Grid overlay */}
@@ -697,7 +697,7 @@ export function DeviceUtilityOverlay({ utility, onClose }: DeviceUtilityOverlayP
                       <Smartphone size={14} className="text-indigo-400" />
                     </div>
                     <div className="text-sm font-black text-white truncate mt-1">{devicePlatform}</div>
-                    <div className="text-[10px] text-gray-400 mt-2">SWEETY KERNEL v3.7</div>
+                    <div className="text-[10px] text-gray-400 mt-2">XPRO KERNEL v4.0</div>
                   </div>
                 </div>
 
@@ -765,7 +765,7 @@ export function DeviceUtilityOverlay({ utility, onClose }: DeviceUtilityOverlayP
                   <Phone size={44} className="animate-pulse" />
                 </div>
                 
-                <h3 className="text-lg font-black text-white">{utility.args?.contactName || 'Sweety Private Line'}</h3>
+                <h3 className="text-lg font-black text-white">{utility.args?.contactName || 'XPRO Private Line'}</h3>
                 <p className="text-xs text-gray-400 font-mono mt-1">{utility.args?.phoneNumber || '+91 98765 43210'}</p>
                 
                 <div className="mt-4 px-3 py-1.5 bg-indigo-500/10 border border-indigo-500/20 rounded-full text-indigo-400 text-xs font-mono font-bold tracking-widest animate-pulse">
@@ -867,7 +867,7 @@ export function DeviceUtilityOverlay({ utility, onClose }: DeviceUtilityOverlayP
                   <div className="w-14 h-14 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-pink-400 mb-3 mx-auto">
                     <Lock size={22} className={pinError ? 'animate-bounce text-red-400' : ''} />
                   </div>
-                  <h3 className="text-sm font-black text-white uppercase tracking-widest">Sweety Guard Lock</h3>
+                  <h3 className="text-sm font-black text-white uppercase tracking-widest">XPRO Guard Lock</h3>
                   <p className="text-[10px] text-gray-400 mt-1">Default access code: <span className="font-mono font-bold text-indigo-400">1234</span></p>
                 </div>
 
@@ -944,7 +944,7 @@ export function DeviceUtilityOverlay({ utility, onClose }: DeviceUtilityOverlayP
                   <div className="flex items-center justify-between p-4 bg-white/5 border border-white/5 rounded-2xl">
                     <div>
                       <div className="text-xs font-black text-white">Wireless Connection (WiFi)</div>
-                      <div className="text-[10px] text-gray-400 mt-1">{wifiEnabled ? 'Connected to "Sweety-Super-LTE"' : 'WiFi transceiver disconnected'}</div>
+                      <div className="text-[10px] text-gray-400 mt-1">{wifiEnabled ? 'Connected to "XPRO-Super-LTE"' : 'WiFi transceiver disconnected'}</div>
                     </div>
                     <button 
                       onClick={() => setWifiEnabled(!wifiEnabled)}
@@ -1091,7 +1091,7 @@ export function DeviceUtilityOverlay({ utility, onClose }: DeviceUtilityOverlayP
                 </div>
 
                 <p className="text-xs text-gray-400 max-w-sm leading-relaxed px-4">
-                  Sweety is routing your command message to {utility.type === 'whatsapp' ? 'WhatsApp' : 'Telegram'} chat interface. Please wait a moment.
+                  XPRO AGENT is routing your command message to {utility.type === 'whatsapp' ? 'WhatsApp' : 'Telegram'} chat interface. Please wait a moment.
                 </p>
 
                 {searchQuery && (
@@ -1157,7 +1157,7 @@ export function DeviceUtilityOverlay({ utility, onClose }: DeviceUtilityOverlayP
                 <div className="p-4 bg-white/5 border border-white/5 rounded-2xl text-center text-xs text-gray-400 space-y-3 py-6">
                   <Cpu size={24} className="mx-auto text-indigo-400 animate-pulse" />
                   <p>
-                    {utility.type === 'youtube' && 'Sweety AI is ready to pull media records matching your search target.'}
+                    {utility.type === 'youtube' && 'XPRO AGENT is ready to pull media records matching your search target.'}
                     {utility.type === 'google_search' && 'Google query indexes will fetch matching web materials.'}
                     {utility.type === 'chrome' && 'Standard HTTP Chrome sandboxing ready for destination.'}
                   </p>
@@ -1487,7 +1487,7 @@ export function DeviceUtilityOverlay({ utility, onClose }: DeviceUtilityOverlayP
                   <button 
                     onClick={() => {
                       setMediaTrack({
-                        title: 'Sweety Lofi Coding Beats (Vol 3)',
+                        title: 'XPRO Lofi Coding Beats (Vol 3)',
                         artist: 'Synthesized Calm',
                         album: 'Workspace Focus Matrix',
                         duration: '4:12',
@@ -1543,7 +1543,7 @@ export function DeviceUtilityOverlay({ utility, onClose }: DeviceUtilityOverlayP
                       {isCharging ? 'CHARGING VIA AC SOURCE' : 'DISCHARGING - RUNNING ON ACCUMULATOR'}
                     </div>
                     <p className="text-[10px] text-gray-400 leading-relaxed">
-                      Sweety smart diagnostics are optimizing battery health.
+                      XPRO smart diagnostics are optimizing battery health.
                     </p>
                     <div className="text-[10px] text-indigo-400 font-bold font-mono">Voltage: 3.82V · Current: 420mA</div>
                   </div>
@@ -1583,7 +1583,7 @@ export function DeviceUtilityOverlay({ utility, onClose }: DeviceUtilityOverlayP
                   <div className="flex justify-between items-center text-xs font-bold">
                     <div className="flex items-center gap-2 text-white">
                       <HardDrive size={16} className="text-indigo-400" />
-                      <span>Sweety Disk Storage Unit</span>
+                      <span>XPRO Disk Storage Unit</span>
                     </div>
                     <span className="font-mono text-pink-400">32% Used</span>
                   </div>
@@ -1640,7 +1640,7 @@ export function DeviceUtilityOverlay({ utility, onClose }: DeviceUtilityOverlayP
                       <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
                       System Online
                     </div>
-                    <div className="text-sm font-black text-white truncate">Wifi-Sweety-LTE-Secure</div>
+                    <div className="text-sm font-black text-white truncate">Wifi-XPRO-LTE-Secure</div>
                     <div className="text-[10px] text-gray-400 leading-relaxed font-mono">Signal: Excellent (-48 dBm)</div>
                   </div>
                 </div>

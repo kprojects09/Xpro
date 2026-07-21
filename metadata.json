@@ -1,6 +1,6 @@
 {
-  "name": "Remix: Sweety - Personal AI Companion",
-  "description": "A sweet and sassy anime-inspired personal AI assistant with real-time voice-to-voice interaction.",
+  "name": "XPRO AGENT",
+  "description": "A high-performance AI assistant for productivity, learning, and automation.",
   "requestFramePermissions": [
     "microphone",
     "camera",

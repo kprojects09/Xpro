@@ -196,7 +196,7 @@ export function LearnCenter({ theme, addSystemLog, currentUser, userProfile }: L
 
   // --- 4. Daily Planner Schedules ---
   const [plannerEvents, setPlannerEvents] = useState([
-    { id: 1, time: '09:00 AM', text: 'Calculus Lecture live with Sweety' },
+    { id: 1, time: '09:00 AM', text: 'Calculus Lecture live with XPRO AGENT' },
     { id: 2, time: '11:30 AM', text: 'Chemistry Lab Homework submission' },
     { id: 0, time: '02:00 PM', text: 'Solve Computer Science previous year question papers' },
     { id: 4, time: '04:30 PM', text: 'AI Study group debate & voice review' }
